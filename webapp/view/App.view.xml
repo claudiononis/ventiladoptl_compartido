@@ -1,0 +1,13 @@
+<mvc:View controllerName="ventilado.ventiladoptl.controller.App"
+    xmlns:html="http://www.w3.org/1999/xhtml"
+    xmlns:mvc="sap.ui.core.mvc" displayBlock="true"
+    xmlns="sap.m">
+            <Bar>
+            <contentMiddle>
+                <Text text="{clock>/time}"  />
+            </contentMiddle>
+           
+        </Bar>
+    <App id="app">
+    </App>
+</mvc:View>
