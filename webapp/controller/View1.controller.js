@@ -411,37 +411,144 @@ sap.ui.define(
                     // Eliminar ceros a la izquierda usando replace
                     lugarPDisp = lugarPDisp.replace(/^0+/, "");
 
-                                    // Asignar de nuevo el valor sin ceros a la izquierda
-                                    item.LugarPDisp = lugarPDisp;
-                                    objectStore.put(item);
-                                });
-                            } else {
-                                // Si no es un array, manejar el único item directamente
-                                var item = oData.results;
-                                // Completando el campo "Transporte" con ceros a la izquierda si es necesario
-                                item.Transporte = (item.Transporte || '').padStart(10, '0');
-                                // Guardar el item en el object store
-                                objectStore.put(item);
-                            }
-                            BusyIndicator.hide();  // Ocultar 
-                            /*   ctx.verificarAsignacionDeDisplays();
-                              console.log("Datos copiados con éxito."); *///
-                            ctx._verificarAsignacionYRedirigir();
-                            console.log("Datos copiados con éxito.");
+                    // Asignar de nuevo el valor sin ceros a la izquierda
+                    item.LugarPDisp = lugarPDisp;
+                    objectStore.put(item);
+                  });
+                } else {
+                  // Si no es un array, manejar el único item directamente
+                  var item = oData.results;
+                  // Completando el campo "Transporte" con ceros a la izquierda si es necesario
+                  item.Transporte = (item.Transporte || "").padStart(10, "0");
+                  // Guardar el item en el object store
+                  objectStore.put(item);
+                }
+                BusyIndicator.hide(); // Ocultar
+                /*   ctx.verificarAsignacionDeDisplays();
+                              console.log("Datos copiados con éxito."); */ //
+                ctx._verificarAsignacionYRedirigir();
+                console.log("Datos copiados con éxito.");
+                if (ctx.todosEstadoInicial()) {
+                  const oClockModel = ctx.getOwnerComponent().getModel("clock");
+                  oClockModel.setProperty("/isRunning", true);
+                  localStorage.setItem(
+                    "clockData",
+                    JSON.stringify(oClockModel.getData())
+                  );
+                  ctx.getOwnerComponent()._startClockTimer(oClockModel);
 
-                        },
-                        error: function (oError) {
-                            console.error("Error al leer datos del servicio OData:", oError);
-                            BusyIndicator.hide();  // Ocultar BusyIndicator en caso de error
+                  // Insertar un nuevo registro en el backend
+                  var oModel = new sap.ui.model.odata.v2.ODataModel(
+                    "/sap/opu/odata/sap/ZVENTILADO_SRV/",
+                    {
+                      useBatch: false,
+                      defaultBindingMode: "TwoWay",
+                      deferredGroups: ["batchGroup1"],
+                    }
+                  );
+                  var sTransporte = ctx
+                    .byId("reparto")
+                    .getValue()
+                    .padStart(10, "0");
+
+                  // Primero, buscar si ya existe el registro
+                  var aFilters = [
+                    new sap.ui.model.Filter(
+                      "Transporte",
+                      sap.ui.model.FilterOperator.EQ,
+                      sTransporte
+                    ),
+                  ];
+                  oModel.read("/ZVENTILADO_KPISet", {
+                    filters: aFilters,
+                    success: function (oData) {
+                      if (oData.results && oData.results.length === 0) {
+                        // No existe, entonces hago el create
+                        var now = new Date();
+                        var sODataFechaInicio = "/Date(" + now.getTime() + ")/";
+                        var sODataFechaFin =
+                          "/Date(" +
+                          new Date(1900, 0, 1, 0, 0, 0).getTime() +
+                          ")/";
+
+                        // Edm.Time formato OData: PTxxHxxMxxS
+                        function toODataTime(timeStr) {
+                          var parts = timeStr.split(":");
+                          return (
+                            "PT" +
+                            parts[0] +
+                            "H" +
+                            parts[1] +
+                            "M" +
+                            parts[2] +
+                            "S"
+                          );
                         }
-                    });
-                };
-            };
-        },
-        /******   Cuando se sale de la pagina se cierran todas las conexiones a la base local */
-        onExit: function () {
-            this.closeAllDbConnections(); // Cerrar todas las conexiones cuando se cierre el controlador
-        },
+                        var sHoraActual = now.toTimeString().slice(0, 8); // "HH:MM:SS"
+                        var sODataHoraInicio = toODataTime(sHoraActual);
+                        var sODataHoraFin = toODataTime("00:00:00");
+                        var oEntry = {
+                          Estacion: ctx.byId("puesto").getValue(),
+                          Transporte: ctx
+                            .byId("reparto")
+                            .getValue()
+                            .padStart(10, "0"),
+                          Entrega: "",
+                          Fechainicio: sODataFechaInicio,
+                          Horainicio: sODataHoraInicio,
+                          Fechafin: sODataFechaFin,
+                          Horafin: sODataHoraFin,
+                          Duracionneta: 0,
+                          Cantidadentrega: 0,
+                          Operador: ctx.byId("Usuario").getValue(),
+                          Cantidaditem: 0,
+                          Campoadicional1: "",
+                          Campoadicional2: "",
+                          Campoadicional3: "",
+                          Cantidadcubeta: 0,
+                          Cantidadpallet: 0,
+                          Cantidadroll: 0,
+                          Volumenentrega: "",
+                          Kiloentrega: "",
+                          Duracionpreparacion: 0,
+                          Duracionfinal: 0,
+                          Inicioescaneo: sODataHoraFin,
+                          Iniciodesafectacion: sODataHoraFin,
+                        };
+
+                        oModel.create("/ZVENTILADO_KPISet", oEntry, {
+                          success: function (data) {
+                            MessageToast.show("Registro creado en backend.");
+                          },
+                          error: function (err) {
+                            MessageBox.error("Error al crear registro KPI.");
+                          },
+                        });
+                      }
+                    },
+                    error: function (oError) {
+                      MessageBox.error(
+                        "Error al consultar registros existentes."
+                      );
+                    },
+                  });
+                }
+              },
+              error: function (oError) {
+                console.error(
+                  "Error al leer datos del servicio OData:",
+                  oError
+                );
+                BusyIndicator.hide(); // Ocultar BusyIndicator en caso de error
+              },
+            });
+          };
+        };
+      },
+      /******   Cuando se sale de la pagina se cierran todas las conexiones a la base local */
+      onExit: function () {
+        this.closeAllDbConnections(); // Cerrar todas las conexiones cuando se cierre el controlador
+      },
 
       closeAllDbConnections: function () {
         this._dbConnections.forEach((db) => {
