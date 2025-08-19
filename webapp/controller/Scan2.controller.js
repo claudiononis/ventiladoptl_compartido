@@ -1714,8 +1714,7 @@ sap.ui.define([
                     var updateRequest = cursor.update(record);
                     updateRequest.onsuccess = function () {
                         console.log("Registro actualizado:", record);
-                        var updatedData = [{ "Id": id, "Cubre": nuevoCubR, "Pa": nuevoValorPa, "AdicChar1": estado }];
-                        ctx.crud("ACTUALIZAR", "ventilado", id, updatedData, "");
+                        
 
                     };
                     updateRequest.onerror = function (event) {

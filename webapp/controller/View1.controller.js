@@ -361,6 +361,7 @@ sap.ui.define([
                                     item.LugarPDisp = lugarPDisp;
                                     objectStore.put(item);
                                 });
+                                
                             } else {
                                 // Si no es un array, manejar el único item directamente
                                 var item = oData.results;
@@ -374,6 +375,7 @@ sap.ui.define([
                               console.log("Datos copiados con éxito."); */
                             ctx._verificarAsignacionYRedirigir();
                             console.log("Datos copiados con éxito.");
+
 
                         },
                         error: function (oError) {

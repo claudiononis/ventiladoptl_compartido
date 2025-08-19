@@ -1,0 +1,83 @@
+<mvc:View controllerName="ventilado.ventiladoptl.controller.Logtransporte"
+xmlns="sap.ui.table"
+xmlns:rowmodes="sap.ui.table.rowmodes"
+xmlns:mvc="sap.ui.core.mvc"
+xmlns:u="sap.ui.unified"
+xmlns:c="sap.ui.core"
+xmlns:m="sap.m"
+height="100%">
+<m:Page title="Log de transporte">
+        <m:content>
+            <!-- Filtros -->
+            <m:VBox class="sapUiSmallMargin">
+                <m:HBox>
+                    <m:Label text="Desde:" labelFor="dpFrom"/>
+                    <m:DatePicker id="dpFrom" valueFormat="yyyy-MM-dd" displayFormat="dd/MM/yyyy"/>
+                    
+                    <m:Label text="Hasta:" labelFor="dpTo" class="sapUiTinyMarginBegin"/>
+                    <m:DatePicker id="dpTo" valueFormat="yyyy-MM-dd" displayFormat="dd/MM/yyyy"/>
+
+                    <m:Label text="Transporte:" labelFor="inpTransporte" class="sapUiTinyMarginBegin"/>
+                    <m:Input id="inpTransporte" width="150px"/>
+
+                    <m:Button text="Buscar" press=".onSearch" class="sapUiTinyMarginBegin"/>
+                </m:HBox>
+            </m:VBox>
+
+           <!-- Tabla simple -->
+            <m:Table id="kpiTable" items="{/tableData}" growing="true" growingThreshold="20">
+
+                <m:columns>
+                    <m:Column><m:Text text="Fecha"/></m:Column>
+                    <m:Column><m:Text text="Op"/></m:Column>
+                    <m:Column><m:Text text="Estación"/></m:Column>
+                    <m:Column><m:Text text="Reparto"/></m:Column>
+                    <m:Column><m:Text text="Kg. Netos"/></m:Column>
+                    <m:Column><m:Text text="Kg. Brutos"/></m:Column>
+                    <m:Column><m:Text text="Volumen (m³)"/></m:Column>
+                    <m:Column><m:Text text="Cant Unid."/></m:Column>
+                    <m:Column><m:Text text="Cant EANS"/></m:Column>
+                    <m:Column><m:Text text="Cant Clientes"/></m:Column>
+                    <m:Column><m:Text text="Cant Cubetas"/></m:Column>
+                    <m:Column><m:Text text="Cant Roll"/></m:Column>
+                    <m:Column><m:Text text="Cant Pallets"/></m:Column>
+                    <m:Column><m:Text text="T. Prep."/></m:Column>
+                    <m:Column><m:Text text="T. Scan"/></m:Column>
+                    <m:Column><m:Text text="T. Final"/></m:Column>
+                    <m:Column><m:Text text="T. Product."/></m:Column>
+                    <m:Column><m:Text text="T. Pausa"/></m:Column>
+                    <m:Column><m:Text text="T. Total Bruto"/></m:Column>
+                    <m:Column><m:Text text="Minutos Product."/></m:Column>
+                    <m:Column><m:Text text="Min TB"/></m:Column>
+                </m:columns>
+
+                <m:items>
+                    <m:ColumnListItem>
+                        <m:cells>
+                            <m:Text text="{Operador}"/>
+                            <m:Text text="{Estacion}"/>
+                            <m:Text text="{Reparto}"/>
+                            <m:Text text="{KgNetos}"/>
+                            <m:Text text="{KgBrutos}"/>
+                            <m:Text text="{Volumen}"/>
+                            <m:Text text="{CantUnid}"/>
+                            <m:Text text="{CantEans}"/>
+                            <m:Text text="{CantClientes}"/>
+                            <m:Text text="{CantCubet}"/>
+                            <m:Text text="{CantRoll}"/>
+                            <m:Text text="{CantPallets}"/>
+                            <m:Text text="{TiempoA}"/>
+                            <m:Text text="{TiempoB}"/>
+                            <m:Text text="{TiempoC}"/>
+                            <m:Text text="{TiempoProductivo}"/>
+                            <m:Text text="{TPausa}"/>
+                            <m:Text text="{TTotalBruto}"/>
+                            <m:Text text="{MinProductivos}"/>
+                            <m:Text text="{MinTB}"/>
+                        </m:cells>
+                    </m:ColumnListItem>
+                </m:items>
+            </m:Table>
+        </m:content>
+    </m:Page>
+</mvc:View>

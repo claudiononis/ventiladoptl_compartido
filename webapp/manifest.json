@@ -137,6 +137,11 @@
           "name": "Verdesafectacion",
           "pattern": "Verdesafectacion",
           "target": "Verdesafectacion"
+        },
+        {
+          "name": "Logtransporte",
+          "pattern": "Logtransporte",
+          "target": "Logtransporte"
         }
       ],
       "targets": {
@@ -195,6 +200,12 @@
           "transition": "slide",
           "clearControlAggregation": false,
           "viewName": "Verdesafectacion"
+        },
+        "Logtransporte": {
+          "viewType": "XML",
+          "transition": "slide",
+          "clearControlAggregation": false,
+          "viewName": "Logtransporte"
         }
       }
     },
