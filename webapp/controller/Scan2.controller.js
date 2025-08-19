@@ -751,10 +751,34 @@ sap.ui.define(
                 sHoraActual.split(":")[2] +
                 "S";
 
+              function parseODataDurationToMilliseconds(durationStr) {
+                if (typeof durationStr !== "string") return 0;
+                const match = durationStr.match(/PT(\d+)H(\d+)M(\d+)S/);
+                if (!match) return 0;
+                const [, h, m, s] = match.map(Number);
+                return ((h * 60 + m) * 60 + s) * 1000;
+              }
+
+              var cantidadRegistros =
+                Number(localStorage.getItem("avanceCantidadRegistros")) || 0;
+              var totalKilo = localStorage.getItem("avanceTotalKilo") || "0";
+              var totalM3 = localStorage.getItem("avanceTotalM3") || "0";
+              var totalTot =
+                Number(localStorage.getItem("avanceTotalTot")) || 0;
+
               var oUpdate = [
                 {
                   Id: registro.Id,
                   Inicioescaneo: sODataHoraActual,
+                  Duracionpreparacion: Math.floor(
+                    (parseODataDurationToMilliseconds(sODataHoraActual) -
+                      registro.Horainicio.ms) /
+                      60000
+                  ),
+                  Cantidadentrega: cantidadRegistros,
+                  Kiloentrega: totalKilo,
+                  Volumenentrega: totalM3,
+                  Cantidaditem: totalTot,
                 },
               ];
 
@@ -767,15 +791,6 @@ sap.ui.define(
                   ""
                 );
               }
-
-              /*               oModel.update(
-                "/ZVENTILADO_KPISet(" + registro.Id + ")",
-                oUpdate,
-                {
-                  success: function () {},
-                  error: function (err) {},
-                }
-              ); */
             }
           },
           error: function (oError) {
@@ -1999,26 +2014,37 @@ sap.ui.define(
         var index = objectStore.index("LugarPDisp");
         var lugar_p_disp = indice; // Reemplaza esto con el valor que estás buscando
 
-            index.openCursor(IDBKeyRange.only(lugar_p_disp)).onsuccess = function (event) {
-                var cursor = event.target.result;
-                if (cursor) {
-                    var record = cursor.value;
-                    // Actualizar los campos Cubre y Pa con los nuevos valores
-                    record.Cubre = nuevoCubR;
-                    record.Pa = nuevoValorPa;
-                    record.AdicChar1 = estado;
-                    var id = record.Id;
-                    // Actualizar el registro en el object store
-                    var updateRequest = cursor.update(record);
-                    updateRequest.onsuccess = function () {
-                        console.log("Registro actualizado:", record);
-                        var updatedData = [{ "Id": id, "Cubre": nuevoCubR, "Pa": nuevoValorPa, "AdicChar1": estado }];
-                        ctx.crud("ACTUALIZAR", "ventilado", id, updatedData, "");
-
-                    };
-                    updateRequest.onerror = function (event) {
-                        console.error("Error al actualizar el registro:", event.target.errorCode);
-                    };
+        index.openCursor(IDBKeyRange.only(lugar_p_disp)).onsuccess = function (
+          event
+        ) {
+          var cursor = event.target.result;
+          if (cursor) {
+            var record = cursor.value;
+            // Actualizar los campos Cubre y Pa con los nuevos valores
+            record.Cubre = nuevoCubR;
+            record.Pa = nuevoValorPa;
+            record.AdicChar1 = estado;
+            var id = record.Id;
+            // Actualizar el registro en el object store
+            var updateRequest = cursor.update(record);
+            updateRequest.onsuccess = function () {
+              console.log("Registro actualizado:", record);
+              var updatedData = [
+                {
+                  Id: id,
+                  Cubre: nuevoCubR,
+                  Pa: nuevoValorPa,
+                  AdicChar1: estado,
+                },
+              ];
+              ctx.crud("ACTUALIZAR", "ventilado", id, updatedData, "");
+            };
+            updateRequest.onerror = function (event) {
+              console.error(
+                "Error al actualizar el registro:",
+                event.target.errorCode
+              );
+            };
 
             cursor.continue(); // Continuar buscando más registros
           } else {

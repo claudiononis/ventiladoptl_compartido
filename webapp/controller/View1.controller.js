@@ -428,7 +428,20 @@ sap.ui.define(
                               console.log("Datos copiados con éxito."); */ //
                 ctx._verificarAsignacionYRedirigir();
                 console.log("Datos copiados con éxito.");
+
                 if (ctx.todosEstadoInicial()) {
+                  const totalCantidadEntrega = oData.results.reduce(
+                    (sum, item) =>
+                      sum + (parseFloat(item.CantidadEntrega) || 0),
+                    0
+                  );
+
+                  // Contar valores únicos de Ean
+                  const uniqueEans = new Set(
+                    oData.results.map((item) => item.Ean)
+                  );
+                  const cantidadEansUnicos = uniqueEans.size;
+
                   const oClockModel = ctx.getOwnerComponent().getModel("clock");
                   oClockModel.setProperty("/isRunning", true);
                   localStorage.setItem(
@@ -501,7 +514,7 @@ sap.ui.define(
                           Duracionneta: 0,
                           Cantidadentrega: 0,
                           Operador: ctx.byId("Usuario").getValue(),
-                          Cantidaditem: 0,
+                          Cantidaditem: totalCantidadEntrega,
                           Campoadicional1: "",
                           Campoadicional2: "",
                           Campoadicional3: "",
