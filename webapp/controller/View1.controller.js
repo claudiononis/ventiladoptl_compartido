@@ -425,7 +425,7 @@ sap.ui.define(
                             }
                             BusyIndicator.hide();  // Ocultar 
                             /*   ctx.verificarAsignacionDeDisplays();
-                              console.log("Datos copiados con éxito."); */
+                              console.log("Datos copiados con éxito."); *///
                             ctx._verificarAsignacionYRedirigir();
                             console.log("Datos copiados con éxito.");
 
