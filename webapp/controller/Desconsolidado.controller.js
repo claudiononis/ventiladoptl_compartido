@@ -359,7 +359,77 @@ sap.ui.define(
         },
         onDesafectacionPress: function () {
           //INSERTAR MISMO CODIGO QUE EN ONSTART DE SCAN2
+          ctx = this;
+          var oModel = new sap.ui.model.odata.v2.ODataModel(
+            "/sap/opu/odata/sap/ZVENTILADO_SRV/",
+            {
+              useBatch: false,
+              defaultBindingMode: "TwoWay",
+            }
+          );
+          // Primero, buscar si ya existe el registro
+          var aFilters = [
+            new sap.ui.model.Filter(
+              "Transporte",
+              sap.ui.model.FilterOperator.EQ,
+              sReparto
+            ),
+          ];
+          oModel.read("/ZVENTILADO_KPISet", {
+            filters: aFilters,
+            success: function (oData) {
+              if (oData.results && oData.results.length > 0) {
+                // Hay al menos un registro, actualizamos Inicioescaneo
+                var registro = oData.results[0];
+                var now = new Date();
+                var sHoraActual = now.toTimeString().slice(0, 8); // "HH:MM:SS"
+                var sODataHoraActual =
+                  "PT" +
+                  sHoraActual.split(":")[0] +
+                  "H" +
+                  sHoraActual.split(":")[1] +
+                  "M" +
+                  sHoraActual.split(":")[2] +
+                  "S";
 
+                function parseODataDurationToMilliseconds(durationStr) {
+                  if (typeof durationStr !== "string") return 0;
+                  const match = durationStr.match(/PT(\d+)H(\d+)M(\d+)S/);
+                  if (!match) return 0;
+                  const [, h, m, s] = match.map(Number);
+                  return ((h * 60 + m) * 60 + s) * 1000;
+                }
+
+                var oUpdate = [
+                  {
+                    Id: registro.Id,
+                    Iniciodesafectacion: sODataHoraActual,
+                    Duracionneta: Math.floor(
+                      (parseODataDurationToMilliseconds(sODataHoraActual) -
+                        registro.Horainicio.ms) /
+                      60000
+                    )
+
+                  },
+                ];
+
+                if (registro.Iniciodesafectacion.ms == "0") {
+                  ctx.crud(
+                    "ACTUALIZAR",
+                    "ZVENTILADO_KPI",
+                    registro.Id,
+                    oUpdate,
+                    ""
+                  );
+                }
+              }
+            },
+            error: function (oError) {
+              // No mostrar mensajes
+            },
+          });
+
+          //
           var oModel = new ODataModel("/sap/opu/odata/sap/ZVENTILADO_SRV/");
           var aFilters = [];
           aFilters.push(
@@ -460,6 +530,184 @@ sap.ui.define(
 
           //   }
         },
+
+
+        //*******  Inicio  Funciones para el CRUD del oData *******/
+        crud: function (operacion, tabla, id, oValor1, oValor2) {
+          var ctx = this;
+          var oModel = new sap.ui.model.odata.v2.ODataModel(
+            "/sap/opu/odata/sap/ZVENTILADO_SRV/",
+            {
+              useBatch: false,
+              defaultBindingMode: "TwoWay",
+              deferredGroups: ["batchGroup1"],
+            }
+          );
+          oModel.refreshMetadata();
+          var sEntitySet = "/" + tabla + "Set";
+
+          if (operacion == "READ") {
+            // Configurar los filtros
+            var aFilters = [];
+
+            aFilters.push(new Filter("Transporte", FilterOperator.EQ, oValor1));
+            aFilters.push(new Filter("Entrega", FilterOperator.EQ, oValor2));
+
+            // Hacer la llamada OData
+
+            oModel.read(sEntitySet, {
+              filters: aFilters,
+              success: function (oData) {
+                // Manejar datos exitosamente
+                console.log(oData);
+              },
+              error: function (oError) {
+                // Manejar errores
+                console.error(oError);
+              },
+            });
+          } else if (operacion == "FI") {
+            var sTransporte = sReparto; //"0000001060";
+            var sPtoPlanificacion = sPtoPlanif; //"1700";
+            oModel.callFunction("/GenerarTransporte", {
+              method: "GET",
+              urlParameters: {
+                transporte: sTransporte, // Pass parameters directly as strings
+                pto_planificacion: sPtoPlanificacion,
+              },
+              success: function (oData) {
+                // Manejar éxito
+                MessageToast.show("Se cargaron los datos para el ventilado");
+                // Procesar la respuesta aquí
+                var transporte = oData.Transporte;
+                var entrega = oData.Entrega;
+                var pto_planificacion = oData.Pto_planificacion;
+                var estado = oData.Ean;
+
+                // Aquí puedes trabajar con los datos recibidos
+                console.log("Transporte: ", transporte);
+                console.log("Pto Entrega: ", pto_planificacion);
+                console.log("Entrega: ", entrega);
+                console.log("Estado: ", estado);
+
+                ctx.crud("READ", "ventilado", transporte, "1700"); // se leen los datos del transporte
+              },
+              error: function (oError) {
+                // Manejar error
+                var sErrorMessage = "";
+                try {
+                  var oErrorResponse = JSON.parse(oError.responseText);
+                  sErrorMessage = oErrorResponse.error.message.value;
+                } catch (e) {
+                  sErrorMessage = "Error desconocido";
+                }
+                MessageToast.show(sErrorMessage);
+              },
+            });
+          } else if (operacion == "CREAR") {
+            var createRecord = function (oEntry, onSuccess, onError) {
+              var sEntitySet = "/" + tabla + "Set";
+              oModel.create(sEntitySet, oEntry, {
+                success: function () {
+                  //    MessageToast.show("Registro " + oEntry.Dni + " creado con éxito.");
+                  if (onSuccess) onSuccess();
+                },
+                error: function (oError) {
+                  MessageToast.show("Error al crear el registro " + oEntry.Dni);
+                  console.error(oError);
+                  if (onError) onError(oError);
+                },
+              });
+            };
+
+            var createNext = function (index) {
+              if (index < oValor1.length) {
+                createRecord(oValor1[index], function () {
+                  createNext(index + 1);
+                });
+              } else {
+                MessageToast.show("Todos los registros se han creado con exito.");
+              }
+            }.bind(this);
+
+            createNext(0);
+          } else if (operacion == "ACTUALIZAR") {
+            // Definir la función updateRecord
+
+            var updateRecord = function (oEntry, onSuccess, onError) {
+              // La ruta debe estar construida correctamente según el modelo y los datos
+              var sEntitySet = "/" + tabla + "Set";
+              var sPath = sEntitySet + "(" + oEntry.Id + ")"; // Ajusta esta ruta según tu modelo OData
+              oModel.update(sPath, oEntry, {
+                success: function () {
+                  //  MessageToast.show("Registro " + oEntry.Id + " actualizado con exito.");
+                  if (onSuccess) onSuccess();
+                },
+                error: function (oError) {
+                  MessageToast.show(
+                    "Error al actualizar el registro " + oEntry.Dni
+                  );
+                  console.error(oError);
+                  if (onError) onError(oError);
+                },
+              });
+            };
+
+            // Función para actualizar los registros secuencialmente.
+            var updateRecords = function (aData) {
+              var updateNext = function (index) {
+                if (index < aData.length) {
+                  updateRecord(aData[index], function () {
+                    updateNext(index + 1);
+                  });
+                } else {
+                  MessageToast.show(
+                    "Todos los registros se han actualizado con éxito."
+                  );
+                }
+              }.bind(this);
+              updateNext(0);
+            };
+            updateRecords(oValor1);
+          } else if (operacion == "BORRAR") {
+            // Define la función de éxito
+            var onSuccessFunction = function () {
+              console.log("Operación exitosa");
+            };
+
+            // Define la función de error
+            var onErrorFunction = function (error) {
+              console.error("Error:", error);
+            };
+
+            // Define la función deleteRecord
+            var deleteRecord = function (
+              dni,
+              onSuccess,
+              onError,
+              additionalParameter
+            ) {
+              var sPath = "/zpruebaSet(" + id + ")";
+              oModel.remove(sPath, {
+                success: function () {
+                  MessageToast.show("Registro " + id + " eliminado con éxito.");
+                  if (onSuccess) onSuccess();
+                },
+                error: function (oError) {
+                  MessageToast.show("Error al eliminar el registro " + dni);
+                  console.error(oError);
+                  if (onError) onError(oError);
+                },
+              });
+
+              // Ejemplo de uso del parámetro adicional
+              console.log("Additional Parameter:", additionalParameter);
+            };
+          }
+        },
+
+        //******* Fin  Funciones para el CRUD  *******/
+
       }
     );
   }
