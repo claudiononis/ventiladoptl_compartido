@@ -400,16 +400,24 @@ sap.ui.define(
                   return ((h * 60 + m) * 60 + s) * 1000;
                 }
 
+                const oClockModel = ctx.getOwnerComponent().getModel("clock");
+                const tiempoReloj = oClockModel.getProperty("/time");
+                oClockModel.setProperty("/isRunning", false);
+
+                function timeStringToMinutes(timeStr) {
+                  if (!timeStr) return 0;
+                  const [h, m] = timeStr.split(":").map(Number);
+                  return h * 60 + m;
+                }
+
+                const tiempoRelojMinutos = timeStringToMinutes(tiempoReloj);
+
                 var oUpdate = [
                   {
                     Id: registro.Id,
                     Iniciodesafectacion: sODataHoraActual,
-                    Duracionneta: Math.floor(
-                      (parseODataDurationToMilliseconds(sODataHoraActual) -
-                        registro.Horainicio.ms) /
-                      60000
-                    )
-
+                    Duracionneta:
+                      tiempoRelojMinutos - registro.Duracionpreparacion,
                   },
                 ];
 
@@ -495,7 +503,7 @@ sap.ui.define(
                             console.log("Estado: ", estado);
                             BusyIndicator.hide(); // Ocultar
                             MessageToast.show(
-                              "Se conpleto la Desafectacion de material"
+                              "Se completo la Desafectacion de material"
                             );
                           },
                           error: function (oError) {
@@ -530,7 +538,6 @@ sap.ui.define(
 
           //   }
         },
-
 
         //*******  Inicio  Funciones para el CRUD del oData *******/
         crud: function (operacion, tabla, id, oValor1, oValor2) {
@@ -626,7 +633,9 @@ sap.ui.define(
                   createNext(index + 1);
                 });
               } else {
-                MessageToast.show("Todos los registros se han creado con exito.");
+                MessageToast.show(
+                  "Todos los registros se han creado con exito."
+                );
               }
             }.bind(this);
 
@@ -707,7 +716,6 @@ sap.ui.define(
         },
 
         //******* Fin  Funciones para el CRUD  *******/
-
       }
     );
   }
