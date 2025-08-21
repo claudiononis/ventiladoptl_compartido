@@ -717,9 +717,16 @@ sap.ui.define(
 
       /****** Inicio: Arranca proceso de  escaneo  ********************************************/
       onStartPress: function () {
-        // Actualizar el campo horainicio
-        // Insertar un nuevo registro en el backend
         ctx = this;
+        //Reanuda el reloj
+        const oClockModel = ctx.getOwnerComponent().getModel("clock");
+        oClockModel.setProperty("/isRunning", true);
+        localStorage.setItem(
+          "clockData",
+          JSON.stringify(oClockModel.getData())
+        );
+        ctx.getOwnerComponent()._startClockTimer(oClockModel);
+
         var oModel = new sap.ui.model.odata.v2.ODataModel(
           "/sap/opu/odata/sap/ZVENTILADO_SRV/",
           {
@@ -1641,7 +1648,9 @@ sap.ui.define(
               // Hay al menos un registro, actualizamos Inicioescaneo
               var registro = oData.results[0];
               var now = new Date();
-              var sHoraActual = now.toTimeString().slice(0, 8); // "HH:MM:SS"
+
+              // Formatear la hora actual como "HH:MM:SS"
+              var sHoraActual = now.toTimeString().slice(0, 8);
               var sODataHoraActual =
                 "PT" +
                 sHoraActual.split(":")[0] +
@@ -1651,6 +1660,7 @@ sap.ui.define(
                 sHoraActual.split(":")[2] +
                 "S";
 
+              // Función para convertir OData duration a milisegundos
               function parseODataDurationToMilliseconds(durationStr) {
                 if (typeof durationStr !== "string") return 0;
                 const match = durationStr.match(/PT(\d+)H(\d+)M(\d+)S/);
@@ -1659,12 +1669,32 @@ sap.ui.define(
                 return ((h * 60 + m) * 60 + s) * 1000;
               }
 
+              //Calcular tiempo de pausa
+              var tiempobruto = Math.floor(
+                (parseODataDurationToMilliseconds(sODataHoraActual) -
+                  registro.Horainicio.ms) /
+                  60000
+              );
+
+              // Calcular tiempo final
               var sDuracionfinal = Math.floor(
                 (parseODataDurationToMilliseconds(sODataHoraActual) -
                   registro.Iniciodesafectacion.ms) /
                   60000
               );
+
+              //Tiempo productivo
+              var tiempoproductivo =
+                registro.Duracionpreparacion +
+                registro.Duracionneta +
+                sDuracionfinal;
+
+              //Tiempo de pausa
+              var tiempoPausa = tiempobruto - tiempoproductivo;
+
               var sODataFechafin = "/Date(" + now.getTime() + ")/";
+
+              // Objeto para la actualización
               var oUpdate = [
                 {
                   Id: registro.Id,
@@ -1676,10 +1706,8 @@ sap.ui.define(
                       registro.Horainicio.ms) /
                       60000
                   ),
-                  Tiempoproductivo:
-                    registro.Duracionpreparacion +
-                    registro.Duracionneta +
-                    sDuracionfinal,
+                  Tiempoproductivo: tiempoproductivo,
+                  Tiempopausa: tiempoPausa,
                 },
               ];
 
@@ -2928,7 +2956,7 @@ sap.ui.define(
         this.closeAllDbConnections();
         localStorage.setItem("elapsedTime", this.elapsedTime.toString());
         localStorage.setItem("elapsedTime", this.elapsedTime.toString());
-        this.onPause();
+        /*         this.onPause(); */
       },
       getFormattedDateTime: function () {
         var oDate = new Date();
@@ -3015,6 +3043,7 @@ sap.ui.define(
           JSON.stringify(oClockModel.getData())
         );
         clearInterval(this.getOwnerComponent()._clockInterval);
+        this.getView().getModel().setProperty("/isStarted", false);
       },
 
       onStop: function () {
@@ -3047,35 +3076,31 @@ sap.ui.define(
       },
       /* Navegacion   */
       onNavToInicio: function () {
-        this.onPause();
+        /*         this.onPause(); */
         var oRouter = sap.ui.core.UIComponent.getRouterFor(this);
         oRouter.navTo("RouteView1");
       },
       onNavToAvanceRuta: function () {
-        this.onPause();
+        /*         this.onPause(); */
         var oRouter = sap.ui.core.UIComponent.getRouterFor(this);
         oRouter.navTo("Avance2");
       },
       onNavToAvanceCodigo: function () {
-        this.onPause();
+        /*         this.onPause(); */
         var oRouter = sap.ui.core.UIComponent.getRouterFor(this);
         oRouter.navTo("Avanceporci");
       },
       onDesafectacion: function () {
-        //Paramos el reloj
-        this.getOwnerComponent().stopClockAndClearStorage();
-        //Actualizamos campo duracionNeta en el backend
-        //INSERTAR CODIGO
         //Arrancamos el reloj
-        const oClockModel = this.getOwnerComponent().getModel("clock");
+        /*         const oClockModel = this.getOwnerComponent().getModel("clock");
         oClockModel.setProperty("/isRunning", true);
         localStorage.setItem(
           "clockData",
           JSON.stringify(oClockModel.getData())
         );
-        this.getOwnerComponent()._startClockTimer(oClockModel);
+        this.getOwnerComponent()._startClockTimer(oClockModel); */
 
-        this.onPause();
+        /*         this.onPause(); */
         var oRouter = sap.ui.core.UIComponent.getRouterFor(this);
         oRouter.navTo("Desconsolidado"); //
       },
