@@ -4,7 +4,7 @@ sap.ui.define([
     "sap/ui/model/FilterOperator",
     "sap/ui/model/json/JSONModel",
     "sap/ui/model/odata/v2/ODataModel"
-], function (Controller, Filter, FilterOperator, JSONModel,ODataModel) {
+], function (Controller, Filter, FilterOperator, JSONModel, ODataModel) {
     "use strict";
 
     return Controller.extend("ventilado.ventiladoptl.controller.Logtransporte", {
@@ -14,16 +14,18 @@ sap.ui.define([
 
         onSearch: function () {
             var oView = this.getView();
-           // var oODataModel = this.getOwnerComponent().getModel(); // OData v2 model definido en manifest.json
-var oODataModel = new ODataModel("/sap/opu/odata/sap/ZVENTILADO_SRV/");
+            // var oODataModel = this.getOwnerComponent().getModel(); // OData v2 model definido en manifest.json
+            var oODataModel = new ODataModel("/sap/opu/odata/sap/ZVENTILADO_SRV/");
             var sFrom = oView.byId("dpFrom").getValue();
             var sTo = oView.byId("dpTo").getValue();
-            var sTransporte = oView.byId("inpTransporte").getValue();
+            var sTransporte = oView.byId("inpTransporte").getValue().padStart(10, "0");
 
             var aFilters = [];
 
             if (sFrom && sTo) {
-                aFilters.push(new Filter("Fecha", FilterOperator.BT, sFrom, sTo));
+                var oFromDate = new Date(sFrom);
+                var oToDate = new Date(sTo);
+                aFilters.push(new Filter("Fechainicio", FilterOperator.BT, sFrom, sTo));
             }
             if (sTransporte) {
                 aFilters.push(new Filter("Transporte", FilterOperator.EQ, sTransporte));

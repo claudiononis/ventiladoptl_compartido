@@ -527,6 +527,7 @@ sap.ui.define(
                           Duracionfinal: 0,
                           Inicioescaneo: sODataHoraFin,
                           Iniciodesafectacion: sODataHoraFin,
+                          Cantidadean:cantidadEansUnicos
                         };
 
                         oModel.create("/ZVENTILADO_KPISet", oEntry, {

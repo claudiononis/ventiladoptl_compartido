@@ -679,12 +679,31 @@ sap.ui.define(
             0
           );
 
+
+          const conteoContenedores = aData.reduce(
+            (acc, item) => {
+              if (item.contenedor === "CUB") acc.CUB++;
+              else if (item.contenedor === "ROLL") acc.ROLL++;
+              else if (item.contenedor === "PALLET") acc.PALLET++;
+              return acc;
+            },
+            { CUB: 0, ROLL: 0, PALLET: 0 }
+          );
+
+          // Ejemplo: mostrar en consola
+          console.log("CUB:", conteoContenedores.CUB);
+          console.log("ROLL:", conteoContenedores.ROLL);
+          console.log("PALLET:", conteoContenedores.PALLET);
+
           // Guardar en localStorage
           localStorage.setItem("avanceCantidadRegistros", cantidadRegistros);
           localStorage.setItem("avanceTotalKilo", totalKilo.toString());
           localStorage.setItem("avanceTotalM3", totalM3.toString());
           localStorage.setItem("avanceTotalTot", totalTot);
 
+          localStorage.setItem("conteoCUB", conteoContenedores.CUB);
+          localStorage.setItem("conteoROLL", conteoContenedores.ROLL);
+          localStorage.setItem("conteoPALLET", conteoContenedores.PALLET);
           this.onConfirmarContenedores();
           // Asegurar que contenedor y display estén guardados
           this.guardarEnIndexedDB(aData)
@@ -822,8 +841,8 @@ sap.ui.define(
               item.contenedor === "CUB"
                 ? 1
                 : item.contenedor === "ROLL"
-                ? 2
-                : 3;
+                  ? 2
+                  : 3;
 
             let displayAsignado = null;
 
