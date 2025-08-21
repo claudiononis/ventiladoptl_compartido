@@ -446,11 +446,6 @@ sap.ui.define(
                 getRequest.onsuccess = function () {
                   let records = getRequest.result;
 
-                  /* records.forEach(function (record) {
-                record.contenedor = item.contenedor;
-                record.display = item.display;
-                objectStore.put(record);
-              }); */
                   records.forEach(function (record) {
                     record.contenedor = item.contenedor;
                     record.display = item.display;
@@ -568,7 +563,7 @@ sap.ui.define(
                 KILO: 0,
                 M3: 0,
                 CLIENTE: registro.Destinatario,
-                contenedor: contenedorMap[registro.Prodv] || "", // contenedorMap[registro.Prodv || "",
+                contenedor: contenedorMap[registro.Prodv] || "",
                 display: registro.Prodr || "",
                 id: registro.Id,
               };
@@ -704,7 +699,6 @@ sap.ui.define(
             });
         },
 
-        /************************** */
         mapearDisplayParaBackend: function (display) {
           if (display.startsWith("dsp-")) {
             return display.slice(4); // Extraer solo los números (ejemplo: "dsp-001" → "001")
@@ -738,7 +732,6 @@ sap.ui.define(
           return Promise.resolve(); // para que el flujo `Promise.all` siga funcionando
         },
         crud: function (sMetodo, datos, successCallback, errorCallback) {
-          // var oModel = new sap.ui.model.odata.v2.ODataModel("/sap/opu/odata/sap/ZVENTILADO_SRV/");
           var oModel = new sap.ui.model.odata.v2.ODataModel(
             "/sap/opu/odata/sap/ZVENTILADO_SRV/",
             {

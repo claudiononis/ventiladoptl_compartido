@@ -765,7 +765,6 @@ sap.ui.define(
               var totalM3 = localStorage.getItem("avanceTotalM3") || "0";
               var totalTot =
                 Number(localStorage.getItem("avanceTotalTot")) || 0;
-
               var oUpdate = [
                 {
                   Id: registro.Id,
