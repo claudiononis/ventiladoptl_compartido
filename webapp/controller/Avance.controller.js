@@ -796,7 +796,7 @@ sap.ui.define(
           return totalEspacios > 30;
         },
 
-        asignarContenedoresYDisplays: function (
+        /* asignarContenedoresYDisplays: function (
           aData,
           limite1,
           limite2,
@@ -875,7 +875,105 @@ sap.ui.define(
           });
 
           return aData;
+        }, */
+        asignarContenedoresYDisplays: function (
+          aData,
+          limite1,
+          limite2,
+          usarRoll,
+          respetarContenedorManual,
+          skipSort
+        ) {
+          const indisponibles =
+            this.getView().getModel().getProperty("/displaysNoDisponibles") || [];
+
+          // Determinar contenedor si hace falta
+          aData.forEach((item) => {
+            if (!respetarContenedorManual || !item.contenedor) {
+              if (item.CubTEO <= limite1) {
+                item.contenedor = "CUB";
+              } else if (item.CubTEO > limite2 || !usarRoll) {
+                item.contenedor = "PALLET";
+              } else {
+                item.contenedor = "ROLL";
+              }
+            }
+          });
+
+          // Ordenar si corresponde
+          if (!skipSort) {
+            const tipoOrden = { CUB: 1, PALLET: 2, ROLL: 3 };
+            aData.sort((a, b) => {
+              if (tipoOrden[a.contenedor] !== tipoOrden[b.contenedor]) {
+                return tipoOrden[a.contenedor] - tipoOrden[b.contenedor];
+              }
+              return parseInt(a.Ruta) - parseInt(b.Ruta);
+            });
+          }
+
+          // Helpers
+          const posicionesPorModulo = 6;
+          const alineadoPallet = (p) => ((p - 1) % 3) === 0; // 1,4,7,10…
+          const mismoModulo = (ini, fin) =>
+            Math.ceil(ini / posicionesPorModulo) === Math.ceil(fin / posicionesPorModulo);
+
+          let posicion = 1;
+
+          // Asignación de displays
+          aData.forEach((item) => {
+            const espacios =
+              item.contenedor === "CUB" ? 1 :
+                item.contenedor === "ROLL" ? 2 : 3;
+
+            let displayAsignado = null;
+
+            if (item.contenedor === "PALLET") {
+              // Forzar alineación a 1,4,7,10…
+              while (!alineadoPallet(posicion)) {
+                posicion++;
+              }
+            }
+
+            while (!displayAsignado) {
+              const fin = posicion + espacios - 1;
+
+              if (mismoModulo(posicion, fin)) {
+                // Bloque de candidatos
+                const bloque = Array.from({ length: espacios }, (_, i) =>
+                  "dsp-" + ("000" + (posicion + i)).slice(-3)
+                );
+                const bloqueLibre = bloque.every((d) => !indisponibles.includes(d));
+
+                if (bloqueLibre) {
+                  displayAsignado = bloque[0];
+                  posicion += espacios;
+
+                  // Re-alinear si es pallet
+                  if (item.contenedor === "PALLET" && !alineadoPallet(posicion)) {
+                    posicion += (3 - ((posicion - 1) % 3));
+                  }
+                } else {
+                  // avanzar (1 en CUB/ROLL, 3 en PALLET)
+                  posicion += (item.contenedor === "PALLET" ? 3 : 1);
+                  if (item.contenedor === "PALLET" && !alineadoPallet(posicion)) {
+                    posicion += (3 - ((posicion - 1) % 3));
+                  }
+                }
+              } else {
+                // saltar al siguiente módulo
+                posicion = Math.ceil(posicion / posicionesPorModulo) * posicionesPorModulo + 1;
+                if (item.contenedor === "PALLET" && !alineadoPallet(posicion)) {
+                  posicion += (3 - ((posicion - 1) % 3));
+                }
+              }
+            }
+
+            item.display = displayAsignado;
+          });
+
+          return aData;
         },
+
 
         onAdminUnlock: function () {
           const oView = this.getView();
