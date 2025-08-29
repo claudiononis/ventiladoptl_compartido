@@ -110,6 +110,17 @@ sap.ui.define(
         }
         //  this.verificarAsignacionDeDisplays();
         this._actualizarIndicadorDisplaysMarcados();
+        // Lee los valores de localStorage
+        var sTransporte = localStorage.getItem("transporte");
+        var sOperador = localStorage.getItem("operador");
+        var sOrigen = localStorage.getItem("origen");
+
+        if (sOrigen === "logtransporte") {
+          this.getView().byId("reparto").setValue(sTransporte);
+          this.getView().byId("Usuario").setValue(sOperador);
+          this.getView().byId("pto_planif").setValue("2700");
+
+        }
       },
 
       _formatDate: function (date) {
@@ -123,6 +134,12 @@ sap.ui.define(
         this.onExit();
         const oRouter = sap.ui.core.UIComponent.getRouterFor(this);
         oRouter.navTo("Scan");
+      },
+
+      onLogTransporte: function () {
+        this.onExit();
+        const oRouter = sap.ui.core.UIComponent.getRouterFor(this);
+        oRouter.navTo("Logtransporte");
       },
       onDesconsolidadoPress: function () {
         this.onExit();
@@ -183,12 +200,31 @@ sap.ui.define(
         localStorage.setItem("sPreparador", sPreparador);
         localStorage.setItem("Actualizar", false);
 
-        var aInputs = [
-          this.byId("puesto"),
-          this.byId("reparto"),
-          this.byId("pto_planif"),
-          this.byId("Usuario"),
-        ];
+        /*         var aInputs = [
+                  this.byId("puesto"),
+                  this.byId("reparto"),
+                  this.byId("pto_planif"),
+                  this.byId("Usuario"),
+                ]; */
+
+        var sOrigen = localStorage.getItem("origen");
+
+        // Si vienes de logtransporte, no incluyas "puesto" en la validación
+        var aInputs;
+        if (sOrigen === "logtransporte") {
+          aInputs = [
+            this.byId("reparto"),
+            this.byId("pto_planif"),
+            this.byId("Usuario"),
+          ];
+        } else {
+          aInputs = [
+            this.byId("puesto"),
+            this.byId("reparto"),
+            this.byId("pto_planif"),
+            this.byId("Usuario"),
+          ];
+        }
 
         var bValid = true;
 
@@ -527,7 +563,7 @@ sap.ui.define(
                           Duracionfinal: 0,
                           Inicioescaneo: sODataHoraFin,
                           Iniciodesafectacion: sODataHoraFin,
-                          Cantidadean:cantidadEansUnicos
+                          Cantidadean: cantidadEansUnicos
                         };
 
                         oModel.create("/ZVENTILADO_KPISet", oEntry, {
@@ -820,9 +856,10 @@ sap.ui.define(
               } else {
                 ctx._setBotones(false);
 
-                // Redirigir automáticamente a Avance por Ruta
+                // Redirigir automáticamente a Avance por 
                 ctx.onExit();
                 const oRouter = sap.ui.core.UIComponent.getRouterFor(ctx);
+                localStorage.setItem("origen", "");
                 oRouter.navTo("Avance2");
               }
             }
@@ -1111,6 +1148,41 @@ sap.ui.define(
             reject("Error al abrir la base de datos: " + event.target.error);
           };
         });
+      },
+      onAdminUnlockLog: function () {
+        const oView = this.getView();
+        const input = new sap.m.Input({
+          type: "Password",
+          placeholder: "Ingrese clave",
+        });
+
+        const dialog = new sap.m.Dialog({
+          title: "Acceso al log de transportes",
+          content: [input],
+          beginButton: new sap.m.Button({
+            text: "Aceptar",
+            press: () => {
+              const clave = input.getValue();
+              if (clave === "12345") {
+
+
+                sap.m.MessageToast.show("Modo administrador activado");
+                dialog.close();
+                var oRouter = sap.ui.core.UIComponent.getRouterFor(this);
+                oRouter.navTo("Logtransporte");
+              } else {
+                sap.m.MessageBox.error("Clave incorrecta");
+              }
+            },
+          }),
+          endButton: new sap.m.Button({
+            text: "Cancelar",
+            press: () => dialog.close(),
+          }),
+          afterClose: () => dialog.destroy(),
+        });
+
+        dialog.open();
       },
     });
   }

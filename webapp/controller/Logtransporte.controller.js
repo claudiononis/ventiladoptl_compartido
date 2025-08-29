@@ -6,12 +6,26 @@ sap.ui.define([
     "sap/ui/model/odata/v2/ODataModel"
 ], function (Controller, Filter, FilterOperator, JSONModel, ODataModel) {
     "use strict";
-
+   
     return Controller.extend("ventilado.ventiladoptl.controller.Logtransporte", {
         onInit: function () {
             this.getView().setModel(new JSONModel({ tableData: [] }));
         },
+        onTransporteLinkPress: function (oEvent) {
+            // Puedes obtener el valor si lo necesitas:
+            var oContext = oEvent.getSource().getBindingContext();
+            var sTransporte = oEvent.getSource().getText();
+            var sOperador = oContext.getProperty("Operador");
+            var sEstacion = oContext.getProperty("Estacion");
 
+            // Guarda los valores en localStorage
+            localStorage.setItem("transporte", sTransporte);
+            localStorage.setItem("operador", sOperador);
+            localStorage.setItem("estacion", sEstacion);
+            localStorage.setItem("origen", "logtransporte");
+            var oRouter = sap.ui.core.UIComponent.getRouterFor(this);
+            oRouter.navTo("RouteView1"); // Puedes pasar parámetros si lo necesitas
+        },
         onSearch: function () {
             var oView = this.getView();
             // var oODataModel = this.getOwnerComponent().getModel(); // OData v2 model definido en manifest.json
@@ -42,6 +56,7 @@ sap.ui.define([
                     sap.m.MessageToast.show("Error al leer datos");
                 }
             });
-        }
+        },
+
     });
 });

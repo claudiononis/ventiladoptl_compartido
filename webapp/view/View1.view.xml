@@ -107,10 +107,13 @@
                         </HBox>
                         <!-- <Button id="btDesconsolidado" text="Desafectacion" press="onDesconsolidadoPress" width="90%" enabled="true" type="Reject" class="sapUiTinyMarginTop"/>-->
                         <Button id="btCierre" text="Cierre" press="onCierrePress" enabled="false" type="Reject" width="90%" class="sapUiTinyMarginTop"/>
-                    </VBox>
-                    <!-- insertar boton con vbox "log de transporte"-->
+                    
+                     <Button id="btLogTransporte" text="Log de Transporte" press="onAdminUnlockLog" type="Emphasized" width="90%" class="sapUiTinyMarginBottom"/>
+                </VBox>
+                    
                 </Panel>
             </VBox>
+
         </layout:Grid>
     </Page>
 </mvc:View>
