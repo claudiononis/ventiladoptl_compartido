@@ -1726,7 +1726,6 @@ sap.ui.define(
             // No mostrar mensajes
           },
         });
-        //INSERTAR CODIGO
 
         var oModel = new sap.ui.model.odata.v2.ODataModel(
           "/sap/opu/odata/sap/ZVENTILADO_SRV/",
