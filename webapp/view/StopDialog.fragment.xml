@@ -49,12 +49,13 @@
                             <Text text="Pa" />
                         </VBox>
                     </Column>
-                    <!-- <Column>
-                        <Text text="C Real" />
-                    </Column>
                     <Column>
-                        <Text text="Pa" />
-                    </Column> -->
+                        <!-- Texto sumario encima de la columna -->
+                        <VBox>
+                            <Text text="{/realRollsTotal}" class="sapMTextEmphasized" />
+                            <Text text="Ro" />
+                        </VBox>
+                    </Column>
                 </columns>
                 <items>
                     <!-- Filas de datos -->
@@ -72,6 +73,7 @@
                             <Input value="{C Real}" liveChange="onRealCubetasChange" />
                             <!-- Input para Pa con evento de cambio -->
                             <Input value="{Pa}" liveChange="onPalletsChange" />
+                            <Input value="{Ro}" liveChange="onRollsChange" />
                         </cells>
                     </ColumnListItem>
                 </items>

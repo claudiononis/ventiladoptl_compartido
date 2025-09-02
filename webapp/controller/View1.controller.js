@@ -119,7 +119,6 @@ sap.ui.define(
           this.getView().byId("reparto").setValue(sTransporte);
           this.getView().byId("Usuario").setValue(sOperador);
           this.getView().byId("pto_planif").setValue("2700");
-
         }
       },
 
@@ -563,12 +562,26 @@ sap.ui.define(
                           Duracionfinal: 0,
                           Inicioescaneo: sODataHoraFin,
                           Iniciodesafectacion: sODataHoraFin,
-                          Cantidadean: cantidadEansUnicos
+                          Cantidadean: cantidadEansUnicos,
                         };
 
                         oModel.create("/ZVENTILADO_KPISet", oEntry, {
                           success: function (data) {
-                            MessageToast.show("Registro creado en backend.");
+                            //MessageToast.show("Iniciando P");
+                            // Reiniciar e iniciar el cronómetro correctamente
+                            var oClockModel = ctx
+                              .getOwnerComponent()
+                              .getModel("clock");
+                            oClockModel.setProperty("/time", "00:00:00");
+                            oClockModel.setProperty("/elapsedSeconds", 0);
+                            oClockModel.setProperty("/isRunning", true);
+                            localStorage.setItem(
+                              "clockData",
+                              JSON.stringify(oClockModel.getData())
+                            );
+                            ctx
+                              .getOwnerComponent()
+                              ._startClockTimer(oClockModel);
                           },
                           error: function (err) {
                             MessageBox.error("Error al crear registro KPI.");
@@ -856,7 +869,7 @@ sap.ui.define(
               } else {
                 ctx._setBotones(false);
 
-                // Redirigir automáticamente a Avance por 
+                // Redirigir automáticamente a Avance por
                 ctx.onExit();
                 const oRouter = sap.ui.core.UIComponent.getRouterFor(ctx);
                 localStorage.setItem("origen", "");
@@ -1164,8 +1177,6 @@ sap.ui.define(
             press: () => {
               const clave = input.getValue();
               if (clave === "12345") {
-
-
                 sap.m.MessageToast.show("Modo administrador activado");
                 dialog.close();
                 var oRouter = sap.ui.core.UIComponent.getRouterFor(this);

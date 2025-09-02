@@ -20,7 +20,7 @@
 
                     <HBox class="header">
                         <Button text="START" type="Reject" press="onStartPress" enabled="{=!${/isStarted}}" />
-                        <Button id="pausa" text="Pause" press="onPause" visible="{/isStarted}" />
+                        <Button id="pausa" text="Pause" press="onPause" visible="{/isStarted}" enabled="{=${/isStarted}}" />
                         <Button id="stop" text="Cierre de ventilado" type="Reject" press="onStopDialog" visible="{/isStarted}" icon="sap-icon://flag" />
                         <!--<Button id="parcialButton" text="Parcial" press="onParcialPress" enabled="false"/>-->
                         <Text text="{/puesto}" class="blackBackground" />
