@@ -417,6 +417,14 @@ sap.ui.define(
                 0
               )
           );
+          oModel.setProperty(
+            "/realRollsTotal",
+            "Total : " +
+              tableDataArray.reduce(
+                (sum, item) => sum + (parseFloat(item["Ro"]) || 0),
+                0
+              )
+          );
           this.getView().setModel(oModel);
 
           console.log(tableDataArray);
@@ -771,11 +779,8 @@ sap.ui.define(
                 Number(localStorage.getItem("avanceCantidadRegistros")) || 0;
               var totalKilo = localStorage.getItem("avanceTotalKilo") || "0";
               var totalM3 = localStorage.getItem("avanceTotalM3") || "0";
-              const cub = parseInt(localStorage.getItem("conteoCUB"), 10) || 0;
-              const roll =
-                parseInt(localStorage.getItem("conteoROLL"), 10) || 0;
-              const pallet =
-                parseInt(localStorage.getItem("conteoPALLET"), 10) || 0;
+              totalKilo = Number(totalKilo).toFixed(3);
+              totalM3 = Number(totalM3).toFixed(3);
               var totalTot =
                 Number(localStorage.getItem("avanceTotalTot")) || 0;
               var oUpdate = [
@@ -791,9 +796,6 @@ sap.ui.define(
                   Kiloentrega: totalKilo,
                   Volumenentrega: totalM3,
                   Cantidaditem: totalTot,
-                  Cantidadcubeta: cub,
-                  Cantidadroll: roll,
-                  Cantidadpallet: pallet,
                 },
               ];
 
@@ -2039,6 +2041,24 @@ sap.ui.define(
         oModel.setProperty("/realPalletsTotal", "Total: " + totalPallets);
       },
 
+      onRollsChange: function (oEvent) {
+        const oInput = oEvent.getSource();
+        const sPath = oInput.getBindingContext().getPath(); // Obtener el índice del elemento
+        const oModel = this.getView().getModel();
+
+        // Actualizar el valor ingresado en el modelo
+        const sValue = parseFloat(oEvent.getParameter("value")) || 0;
+        oModel.setProperty(sPath + "/Ro", sValue);
+
+        // Recalcular el total de Rolls
+        const aData = oModel.getProperty("/tableData3");
+        const totalRolls = aData.reduce(
+          (sum, item) => sum + (parseFloat(item["Ro"]) || 0),
+          0
+        );
+        oModel.setProperty("/realRollsTotal", "Total: " + totalRolls);
+      },
+
       // Método para manejar la confirmación del valor ingresado en el diálogo Stop
       onStopConfirm: function () {
         if (this.intervalId) {
@@ -2062,6 +2082,11 @@ sap.ui.define(
         var oModel = this.getView().getModel();
         var aData = oModel.getProperty("/tableData3");
         var bValid = true;
+        // Variables para totales
+        var totalCubetas = 0;
+        var totalPallets = 0;
+        var totalRolls = 0;
+        var totalFilas = aItems.length;
         aItems.forEach(function (oItem, index) {
           var oCells = oItem.getCells();
           // Verificar que al menos uno de los valores sea mayor a cero ( cubetas reales o pallets)
@@ -2069,9 +2094,68 @@ sap.ui.define(
             bValid = false;
           }
 
-          aData[index]["C Real"] = oCells[8].getValue();
-          aData[index]["Pa"] = oCells[9].getValue();
+          var cubetas = Number(oCells[8].getValue()) || 0;
+          var pallets = Number(oCells[9].getValue()) || 0;
+          var rolls = Number(oCells[10].getValue()) || 0;
+          totalCubetas += cubetas;
+          totalPallets += pallets;
+          totalRolls += rolls;
+          aData[index]["C Real"] = cubetas;
+          aData[index]["Pa"] = pallets;
+          aData[index]["Ro"] = rolls;
         });
+        // Setear variables en el modelo antes de salir
+        oModel.setProperty("/totalCubetas", totalCubetas);
+        oModel.setProperty("/totalPallets", totalPallets);
+        oModel.setProperty("/totalRolls", totalRolls);
+        oModel.setProperty("/totalFilas", totalFilas);
+
+        //Actualizar log de transporte
+
+        var oModel = new sap.ui.model.odata.v2.ODataModel(
+          "/sap/opu/odata/sap/ZVENTILADO_SRV/",
+          {
+            useBatch: false,
+            defaultBindingMode: "TwoWay",
+          }
+        );
+        // Primero, buscar si ya existe el registro
+        var aFilters = [
+          new sap.ui.model.Filter(
+            "Transporte",
+            sap.ui.model.FilterOperator.EQ,
+            sReparto
+          ),
+        ];
+        oModel.read("/ZVENTILADO_KPISet", {
+          filters: aFilters,
+          success: function (oData) {
+            if (oData.results && oData.results.length > 0) {
+              // Hay al menos un registro, actualizamos Inicioescaneo
+              var registro = oData.results[0];
+              var oUpdate = [
+                {
+                  Id: registro.Id,
+                  Cantidadcubeta: totalCubetas,
+                  Cantidadroll: totalRolls,
+                  Cantidadpallet: totalPallets,
+                },
+              ];
+
+              ctx.crud(
+                "ACTUALIZAR",
+                "ZVENTILADO_KPI",
+                registro.Id,
+                oUpdate,
+                ""
+              );
+            }
+          },
+          error: function (oError) {
+            // No mostrar mensajes
+          },
+        });
+
         if (bValid) {
           oModel.setProperty("/tableData", aData);
           console.log("Updated Data: ", oModel.getProperty("/tableData"));
