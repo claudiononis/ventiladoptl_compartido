@@ -58,7 +58,17 @@ sap.ui.define(
         window.addEventListener("popstate", this._handleUnload.bind(this));
         // Ejecutar acciones iniciales
         this.ejecutarAcciones();
-        // Obtener el valor máximo de AdicChar2
+        this.getView().addEventDelegate({
+          onAfterRendering: () => {
+            const oModel = this.getView().getModel();
+            if (oModel.getProperty("/isStarted")) {
+              const oInput = this.byId("eanInput");
+              if (oInput) {
+                oInput.focus();
+              }
+            }
+          }
+        }, this);
       },
 
       onRouteMatched: function () {
@@ -87,6 +97,17 @@ sap.ui.define(
         ci.setText("");
         // Ejecutar acciones cada vez que la ruta es navegada
         this.ejecutarAcciones();
+        this.getView().addEventDelegate({
+          onAfterRendering: () => {
+            const oModel = this.getView().getModel();
+            if (oModel.getProperty("/isStarted")) {
+              const oInput = this.byId("eanInput");
+              if (oInput) {
+                oInput.focus();
+              }
+            }
+          }
+        }, this);
       },
       seRealizoDesafect: async function () {
         var oModel = new ODataModel("/sap/opu/odata/sap/ZVENTILADO_SRV/");
@@ -238,21 +259,21 @@ sap.ui.define(
           ) {
             return accumulator + Number(currentValue.SCAN);
           },
-          0);
+            0);
           var totalFalta = resultado.reduce(function (
             accumulator,
             currentValue
           ) {
             return accumulator + Number(currentValue.FALTA);
           },
-          0);
+            0);
           var totalCubTeo = resultado.reduce(function (
             accumulator,
             currentValue
           ) {
             return accumulator + Number(currentValue["Cub TEO"]);
           },
-          0);
+            0);
           //Recupera el estado del transporte
 
           // Nombres de las columnas
@@ -404,26 +425,26 @@ sap.ui.define(
           oModel.setProperty(
             "/realCubetasTotal",
             "Total : " +
-              tableDataArray.reduce(
-                (sum, item) => sum + (parseFloat(item["C Real"]) || 0),
-                0
-              )
+            tableDataArray.reduce(
+              (sum, item) => sum + (parseFloat(item["C Real"]) || 0),
+              0
+            )
           );
           oModel.setProperty(
             "/realPalletsTotal",
             "Total : " +
-              tableDataArray.reduce(
-                (sum, item) => sum + (parseFloat(item["Pa"]) || 0),
-                0
-              )
+            tableDataArray.reduce(
+              (sum, item) => sum + (parseFloat(item["Pa"]) || 0),
+              0
+            )
           );
           oModel.setProperty(
             "/realRollsTotal",
             "Total : " +
-              tableDataArray.reduce(
-                (sum, item) => sum + (parseFloat(item["Ro"]) || 0),
-                0
-              )
+            tableDataArray.reduce(
+              (sum, item) => sum + (parseFloat(item["Ro"]) || 0),
+              0
+            )
           );
           this.getView().setModel(oModel);
 
@@ -790,7 +811,7 @@ sap.ui.define(
                   Duracionpreparacion: Math.floor(
                     (parseODataDurationToMilliseconds(sODataHoraActual) -
                       registro.Horainicio.ms) /
-                      60000
+                    60000
                   ),
                   Cantidadentrega: cantidadRegistros,
                   Kiloentrega: totalKilo,
@@ -849,6 +870,7 @@ sap.ui.define(
               var Input3 = ctx.getView().byId("pausa");
               Input3.setEnabled(false);
               oModel.setProperty("/isStarted", true);
+
             }
             /* inicia reloj*/
             if (ctx.intervalId) {
@@ -865,10 +887,24 @@ sap.ui.define(
 
             var oModel = ctx.getView().getModel();
             oModel.setProperty("/isStarted", true);
-            var Input = ctx.getView().byId("eanInput");
+            /* var Input = ctx.getView().byId("eanInput");
+             setTimeout(function () {
+               Input.focus();
+             }, 0); */
+            // Forzá el re-render inmediato
+            sap.ui.getCore().applyChanges();
+
+            var oInput = ctx.getView().byId("eanInput");
             setTimeout(function () {
-              Input.focus();
-            }, 0);
+              if (oInput && oInput.getEnabled()) {
+                oInput.focus();
+                const dom = oInput.getFocusDomRef();
+                if (dom) {
+                  try { dom.select(); } catch (e) { }
+                }
+              }
+            }, 1);
+
 
             // Attach the body click event
             document.body.addEventListener("click", ctx._onBodyClick.bind(ctx));
@@ -1621,7 +1657,7 @@ sap.ui.define(
 
       //********* fin escaneo **************************/
       //******* Abre pagina de ventilado- Cierre */
-      onCierrePress: function () {},
+      onCierrePress: function () { },
       //*******  Funcion para descargar las etiquetas  ****** */
       onGeneratePDF: function () {
         ctx2 = this;
@@ -1675,14 +1711,14 @@ sap.ui.define(
               var tiempobruto = Math.floor(
                 (parseODataDurationToMilliseconds(sODataHoraActual) -
                   registro.Horainicio.ms) /
-                  60000
+                60000
               );
 
               // Calcular tiempo final
               var sDuracionfinal = Math.floor(
                 (parseODataDurationToMilliseconds(sODataHoraActual) -
                   registro.Iniciodesafectacion.ms) /
-                  60000
+                60000
               );
 
               //Tiempo productivo
@@ -1706,7 +1742,7 @@ sap.ui.define(
                   Tiempobruto: Math.floor(
                     (parseODataDurationToMilliseconds(sODataHoraActual) -
                       registro.Horainicio.ms) /
-                      60000
+                    60000
                   ),
                   Tiempoproductivo: tiempoproductivo,
                   Tiempopausa: tiempoPausa,
@@ -2260,7 +2296,7 @@ sap.ui.define(
         };
       },
       // Método para manejar el evento afterClose del diálogo
-      onStopDialogClose: function (oEvent) {},
+      onStopDialogClose: function (oEvent) { },
 
       /******  Llamada ejemplo al CRUD  ****************
                                           
@@ -2859,8 +2895,8 @@ sap.ui.define(
                   campoBusqueda === "id"
                     ? objectStore.get(datos.id)
                     : objectStore
-                        .index(campoBusqueda)
-                        .get(datos[campoBusqueda]);
+                      .index(campoBusqueda)
+                      .get(datos[campoBusqueda]);
                 break;
 
               case "actualizar":
@@ -3242,11 +3278,11 @@ sap.ui.define(
           .catch((err) => {
             MessageBox.error(
               "Error de red al llamar a PickToLine API.\n\n" +
-                "Por favor, verifique:\n" +
-                "1. Que la maquina donde corre la API este encendida y accesible.\n" +
-                "2. Que la conexión de red este activa (VPN, firewall, cables).\n" +
-                "3. Si lo anterior es correcto, reinicie la maquina que contiene la API.\n" +
-                "4. Vuelva a reiniciar el escaneo.",
+              "Por favor, verifique:\n" +
+              "1. Que la maquina donde corre la API este encendida y accesible.\n" +
+              "2. Que la conexión de red este activa (VPN, firewall, cables).\n" +
+              "3. Si lo anterior es correcto, reinicie la maquina que contiene la API.\n" +
+              "4. Vuelva a reiniciar el escaneo.",
               {
                 title: "Error de red PickToLine",
                 actions: [MessageBox.Action.CLOSE],

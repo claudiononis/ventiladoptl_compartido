@@ -563,6 +563,7 @@ sap.ui.define(
                           Inicioescaneo: sODataHoraFin,
                           Iniciodesafectacion: sODataHoraFin,
                           Cantidadean: cantidadEansUnicos,
+                          Campoadicional1: "PTL"
                         };
 
                         oModel.create("/ZVENTILADO_KPISet", oEntry, {

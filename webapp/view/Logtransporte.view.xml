@@ -2,122 +2,177 @@
     xmlns="sap.ui.table"
     xmlns:rowmodes="sap.ui.table.rowmodes"
     xmlns:mvc="sap.ui.core.mvc"
-    xmlns:u="sap.ui.unified"
-    xmlns:c="sap.ui.core"
     xmlns:m="sap.m" height="100%">
-    <m:Page title="Log de transporte">
+
+    <m:Page title="Log de transporte" enableScrolling="false">
         <m:content>
+
             <!-- Filtros -->
             <m:VBox class="sapUiSmallMargin">
-                <m:HBox>
-                    <m:Label text="Desde:" labelFor="dpFrom"/>
-                    <m:DatePicker id="dpFrom" valueFormat="yyyy-MM-dd" displayFormat="dd/MM/yyyy"/>
+                <m:HBox wrap="Wrap" renderType="Bare">
 
-                    <m:Label text="Hasta:" labelFor="dpTo" class="sapUiTinyMarginBegin"/>
-                    <m:DatePicker id="dpTo" valueFormat="yyyy-MM-dd" displayFormat="dd/MM/yyyy"/>
+                    <!-- Desde -->
+                    <m:VBox class="sapUiTinyMarginEnd">
+                        <m:Label text="Desde:" labelFor="dpFrom"/>
+                        <m:DatePicker id="dpFrom" valueFormat="yyyy-MM-dd" displayFormat="dd/MM/yyyy" placeholder="por ejemplo 31/12/2025"/>
+                    </m:VBox>
 
-                    <m:Label text="Transporte:" labelFor="inpTransporte" class="sapUiTinyMarginBegin"/>
-                    <m:Input id="inpTransporte" width="150px"/>
+                    <!-- Hasta -->
+                    <m:VBox class="sapUiTinyMarginEnd">
+                        <m:Label text="Hasta:" labelFor="dpTo"/>
+                        <m:DatePicker id="dpTo" valueFormat="yyyy-MM-dd" displayFormat="dd/MM/yyyy" placeholder="por ejemplo 31/12/2025"/>
+                    </m:VBox>
 
-                    <m:Button text="Buscar" press=".onSearch" class="sapUiTinyMarginBegin"/>
+                    <!-- Transporte -->
+                    <m:VBox class="sapUiTinyMarginEnd">
+                        <m:Label text="Transporte:" labelFor="inpTransporte"/>
+                        <m:Input id="inpTransporte" width="180px"/>
+                    </m:VBox>
+
+                    <!-- Tipo: PTL / Tradicional / Ambos -->
+                    <m:VBox class="sapUiTinyMarginEnd">
+                        <m:Label text="Tipo:" labelFor="rbTipo"/>
+                        <m:RadioButtonGroup id="rbTipo" columns="3" select=".onTipoChange">
+                            <m:buttons>
+                                <m:RadioButton text="PTL" selected="true"/>
+                                <m:RadioButton text="Tradicional"/>
+                                <m:RadioButton text="Ambos"/>
+                            </m:buttons>
+                        </m:RadioButtonGroup>
+                    </m:VBox>
+
+                    <!-- Botón Buscar -->
+                    <m:VBox class="sapUiTinyMarginBegin">
+                        <m:Label text=" "/>
+                        <m:Button text="Buscar" press=".onSearch"/>
+                    </m:VBox>
+
                 </m:HBox>
             </m:VBox>
 
-            <!-- Tabla simple -->
-            <m:Table id="kpiTable" items="{/tableData}" growing="true" growingThreshold="20" mode="SingleSelectMaster" itemPress=".onRowPress">
+            <!-- Tabla desktop con scrollbar vertical propio -->
+            <Table id="kpiTableDesktop" rows="{/tableData}" selectionMode="None" enableColumnReordering="true"  fixedColumnCount ="4" growing="true" growingThreshold="0" growingScrollToLoad="true">
 
-                <m:columns>
-                    <m:Column>
-                        <m:Text text="Fecha"/>
-                    </m:Column>
-                    <m:Column>
-                        <m:Text text="Op"/>
-                    </m:Column>
-                    <m:Column>
-                        <m:Text text="Estación"/>
-                    </m:Column>
-                    <m:Column>
-                        <m:Text text="Reparto"/>
-                    </m:Column>
-                    <m:Column>
-                        <m:Text text="Kg"/>
-                    </m:Column>
+                <!-- Altura/scroll automático -->
+                <rowMode>
+                    <rowmodes:Fixed rowCount="15"/>
+                </rowMode>
 
-                    <m:Column>
-                        <m:Text text="Volumen (m³)"/>
-                    </m:Column>
-                    <m:Column>
-                        <m:Text text="Cant Unid."/>
-                    </m:Column>
-                    <m:Column>
-                        <m:Text text="Cant EANS"/>
-                    </m:Column>
-                    <m:Column>
-                        <m:Text text="Cant Clientes"/>
-                    </m:Column>
-                    <m:Column>
-                        <m:Text text="Cant Cubetas"/>
-                    </m:Column>
-                    <m:Column>
-                        <m:Text text="Cant Roll"/>
-                    </m:Column>
-                    <m:Column>
-                        <m:Text text="Cant Pallets"/>
-                    </m:Column>
-                    <m:Column>
-                        <m:Text text="T. Prep."/>
-                    </m:Column>
-                    <m:Column>
-                        <m:Text text="T. Scan"/>
-                    </m:Column>
-                    <m:Column>
-                        <m:Text text="T. Final"/>
-                    </m:Column>
-                    <m:Column>
-                        <m:Text text="T. Product."/>
-                    </m:Column>
-                    <m:Column>
-                        <m:Text text="T. Pausa"/>
-                    </m:Column>
-                    <m:Column>
-                        <m:Text text="T. Total Bruto"/>
-                    </m:Column>
-                    <m:Column>
-                        <m:Text text="Minutos Product."/>
-                    </m:Column>
-                    <m:Column>
-                        <m:Text text="Min TB"/>
-                    </m:Column>
-                </m:columns>
+                <!-- Columnas -->
+                <columns>
+                    <Column label="Fecha" width="5rem" resizable="true">
+                        <template>
+                            <m:Text wrapping="false" text="{path: 'Fechainicio',
+             type: 'sap.ui.model.odata.type.DateTime',
+             constraints: { displayFormat: 'Date', UTC: true },
+             formatOptions: { pattern: 'dd-MM-yy', UTC: true }}"/>
+                        </template>
+                    </Column>
 
-                <m:items>
-                    <m:ColumnListItem>
-                        <m:cells>
-                            <m:Text text="{path: 'Fechainicio', type:'sap.ui.model.type.Date', formatOptions: { pattern: 'MM-dd-yyyy' }}"/>
-                            <m:Text text="{Operador}"/>
-                            <m:Text text="{Estacion}"/>
-                            
-<m:Link text="{Transporte}" press=".onTransporteLinkPress"/>
+                    <Column label="Op" width="6.5rem" resizable="true" hAlign="Center">
+                        <template>
+                            <m:Text wrapping="false" maxLines="1" text="{Operador}"/>
+                        </template>
+                    </Column>
+
+                    <Column label="Estación" width="5rem" resizable="true">
+                        <template>
+                            <m:Text wrapping="false" maxLines="1" text="{Estacion}"/>
+                        </template>
+                    </Column>
+
+                    <Column label="Reparto" width="6rem" resizable="true">
+                        <template>
+                            <m:Link text="{Transporte}" press=".onTransporteLinkPress"/>
+                        </template>
+                    </Column>
+
+                    <Column label="Kg Br"  width="6rem">
+                        <template>
                             <m:Text text="{Kiloentrega}"/>
-                            <m:Text text="{Volumenentrega}"/>
-                            <m:Text text="{Cantidaditem}"/>
-                            <m:Text text="{Cantidadean}"/>
-                            <m:Text text="{Cantidadentrega}"/>
-                            <m:Text text="{Cantidadcubeta}"/>
-                            <m:Text text="{Cantidadroll}"/>
-                            <m:Text text="{Cantidadpallet}"/>
-                            <m:Text text="{Duracionpreparacion}"/>
-                            <m:Text text="{Duracionneta}"/>
-                            <m:Text text="{Duracionfinal}"/>
-                            <m:Text text="{Tiempoproductivo}"/>
-                            <m:Text text="{TPausa}"/>
-                            <m:Text text="{Tiempobruto}"/>
+                        </template>
+                    </Column>
 
+                    <Column label="Volumen (m³)" width="7rem">
+                        <template>
+                            <m:Text text="{Volumenentrega}" wrapping="false"/>
+                        </template>
+                    </Column>
 
-                        </m:cells>
-                    </m:ColumnListItem>
-                </m:items>
-            </m:Table>
+                    <Column label="Cant Unid." width="7rem">
+                        <template>
+                            <m:Text text="{Cantidaditem}" wrapping="false"/>
+                        </template>
+                    </Column>
+
+                    <Column label="Cant EANS" width="7rem">
+                        <template>
+                            <m:Text text="{Cantidadean}" wrapping="false"/>
+                        </template>
+                    </Column>
+
+                    <Column label="Cant Clientes" width="7rem">
+                        <template>
+                            <m:Text text="{Cantidadentrega}" wrapping="false"/>
+                        </template>
+                    </Column>
+
+                    <Column label="Cant Cubetas" width="7rem">
+                        <template>
+                            <m:Text text="{Cantidadcubeta}" wrapping="false"/>
+                        </template>
+                    </Column>
+
+                    <Column label="Cant Roll" width="7rem">
+                        <template>
+                            <m:Text text="{Cantidadroll}" wrapping="false"/>
+                        </template>
+                    </Column>
+
+                    <Column label="Cant Pallets" width="7rem">
+                        <template>
+                            <m:Text text="{Cantidadpallet}" wrapping="false"/>
+                        </template>
+                    </Column>
+
+                    <Column label="T. Prep." width="5rem">
+                        <template>
+                            <m:Text text="{Duracionpreparacion}" wrapping="false"/>
+                        </template>
+                    </Column>
+
+                    <Column label="T. Scan" width="5rem">
+                        <template>
+                            <m:Text text="{Duracionneta}" wrapping="false"/>
+                        </template>
+                    </Column>
+
+                    <Column label="T. Final" width="5rem">
+                        <template>
+                            <m:Text text="{Duracionfinal}" wrapping="false"/>
+                        </template>
+                    </Column>
+
+                    <Column label="T. Product." width="5rem">
+                        <template>
+                            <m:Text text="{Tiempoproductivo}" wrapping="false"/>
+                        </template>
+                    </Column>
+
+                    <Column label="T. Pausa" width="5rem">
+                        <template>
+                            <m:Text text="{Tiempopausa}" wrapping="false"/>
+                        </template>
+                    </Column>
+
+                    <Column label="T. Total Bruto" width="7rem">
+                        <template>
+                            <m:Text text="{Tiempobruto}" wrapping="false"/>
+                        </template>
+                    </Column>
+                </columns>
+            </Table>
+
         </m:content>
     </m:Page>
 </mvc:View>
