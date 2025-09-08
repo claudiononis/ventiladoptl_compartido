@@ -51,7 +51,7 @@
             </m:VBox>
 
             <!-- Tabla desktop con scrollbar vertical propio -->
-            <Table id="kpiTableDesktop" rows="{/tableData}" selectionMode="None" enableColumnReordering="true"  fixedColumnCount ="4" growing="true" growingThreshold="0" growingScrollToLoad="true">
+            <Table id="kpiTableDesktop" rows="{/tableData}" selectionMode="None" enableColumnReordering="true"  fixedColumnCount ="4" >
 
                 <!-- Altura/scroll automático -->
                 <rowMode>
