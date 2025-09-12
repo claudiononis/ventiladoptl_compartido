@@ -1,30 +1,34 @@
-sap.ui.define([
+sap.ui.define(
+  [
     "sap/ui/core/mvc/Controller",
     "sap/ui/model/Filter",
     "sap/ui/model/FilterOperator",
     "sap/ui/model/json/JSONModel",
-    "sap/ui/model/odata/v2/ODataModel"
-], function (Controller, Filter, FilterOperator, JSONModel, ODataModel) {
+    "sap/ui/model/odata/v2/ODataModel",
+  ],
+  function (Controller, Filter, FilterOperator, JSONModel, ODataModel) {
     "use strict";
 
-    return Controller.extend("ventilado.ventiladoptl.controller.Logtransporte", {
+    return Controller.extend(
+      "ventilado.ventiladoptl.controller.Logtransporte",
+      {
         onInit: function () {
-            this.getView().setModel(new JSONModel({ tableData: [] }));
+          this.getView().setModel(new JSONModel({ tableData: [] }));
         },
         onTransporteLinkPress: function (oEvent) {
-            // Puedes obtener el valor si lo necesitas:
-            var oContext = oEvent.getSource().getBindingContext();
-            var sTransporte = oEvent.getSource().getText();
-            var sOperador = oContext.getProperty("Operador");
-            var sEstacion = oContext.getProperty("Estacion");
+          // Puedes obtener el valor si lo necesitas:
+          var oContext = oEvent.getSource().getBindingContext();
+          var sTransporte = oEvent.getSource().getText();
+          var sOperador = oContext.getProperty("Operador");
+          var sEstacion = oContext.getProperty("Estacion");
 
-            // Guarda los valores en localStorage
-            localStorage.setItem("transporte", sTransporte);
-            localStorage.setItem("operador", sOperador);
-            localStorage.setItem("estacion", sEstacion);
-            localStorage.setItem("origen", "logtransporte");
-            var oRouter = sap.ui.core.UIComponent.getRouterFor(this);
-            oRouter.navTo("RouteView1"); // Puedes pasar parámetros si lo necesitas
+          // Guarda los valores en localStorage
+          localStorage.setItem("transporte", sTransporte);
+          localStorage.setItem("operador", sOperador);
+          localStorage.setItem("estacion", sEstacion);
+          localStorage.setItem("origen", "logtransporte");
+          var oRouter = sap.ui.core.UIComponent.getRouterFor(this);
+          oRouter.navTo("RouteView1"); // Puedes pasar parámetros si lo necesitas
         },
         /* onSearch: function () {
             var oView = this.getView();
@@ -58,54 +62,129 @@ sap.ui.define([
             });
         }, */
         onSearch: function () {
-            var oView = this.getView();
-            // Usá el model del componente si ya está configurado en manifest
-            var oODataModel = new sap.ui.model.odata.v2.ODataModel("/sap/opu/odata/sap/ZVENTILADO_SRV/");
+          var oView = this.getView();
+          // Usá el model del componente si ya está configurado en manifest
+          var oODataModel = new sap.ui.model.odata.v2.ODataModel(
+            "/sap/opu/odata/sap/ZVENTILADO_SRV/"
+          );
 
-            // Fechas: con valueFormat="yyyy-MM-dd" en la view, getValue() ya devuelve eso.
-            var sFrom = oView.byId("dpFrom").getValue(); // "yyyy-MM-dd" o ""
-            var sTo = oView.byId("dpTo").getValue();   // "yyyy-MM-dd" o ""
+          // Fechas: con valueFormat="yyyy-MM-dd" en la view, getValue() ya devuelve eso.
+          var sFrom = oView.byId("dpFrom").getValue(); // "yyyy-MM-dd" o ""
+          var sTo = oView.byId("dpTo").getValue(); // "yyyy-MM-dd" o ""
 
-            // Transporte: NO pad si está vacío
-            var sTransporteRaw = oView.byId("inpTransporte").getValue(); // "" o "123"
-            var sTransporte = sTransporteRaw ? sTransporteRaw.padStart(10, "0") : "";
+          // Transporte: NO pad si está vacío
+          var sTransporteRaw = oView.byId("inpTransporte").getValue(); // "" o "123"
+          var sTransporte = sTransporteRaw
+            ? sTransporteRaw.padStart(10, "0")
+            : "";
 
-            // Tipo (Radio): PTL | Tradicional | Ambos
-            var iTipoIdx = this.byId("rbTipo").getSelectedIndex(); // 0,1,2
-            var aTipos = ["PTL", "TRADICIONAL", "Ambos"];
-            var sTipo = aTipos[iTipoIdx] || "Ambos";
+          // Tipo (Radio): PTL | Tradicional | Ambos
+          var iTipoIdx = this.byId("rbTipo").getSelectedIndex(); // 0,1,2
+          var aTipos = ["PTL", "TRADICIONAL", "Ambos"];
+          var sTipo = aTipos[iTipoIdx] || "Ambos";
 
-            var aFilters = [];
+          var aFilters = [];
 
-            // Fechainicio
-            if (sFrom && sTo) {
-                aFilters.push(new sap.ui.model.Filter("Fechainicio", sap.ui.model.FilterOperator.BT, sFrom, sTo));
-            } else if (sFrom) {
-                aFilters.push(new sap.ui.model.Filter("Fechainicio", sap.ui.model.FilterOperator.GE, sFrom));
-            } else if (sTo) {
-                aFilters.push(new sap.ui.model.Filter("Fechainicio", sap.ui.model.FilterOperator.LE, sTo));
-            }
+          // Fechainicio
+          if (sFrom && sTo) {
+            aFilters.push(
+              new sap.ui.model.Filter(
+                "Fechainicio",
+                sap.ui.model.FilterOperator.BT,
+                sFrom,
+                sTo
+              )
+            );
+          } else if (sFrom) {
+            aFilters.push(
+              new sap.ui.model.Filter(
+                "Fechainicio",
+                sap.ui.model.FilterOperator.GE,
+                sFrom
+              )
+            );
+          } else if (sTo) {
+            aFilters.push(
+              new sap.ui.model.Filter(
+                "Fechainicio",
+                sap.ui.model.FilterOperator.LE,
+                sTo
+              )
+            );
+          }
 
-            // Transporte
-            if (sTransporteRaw) { // ojo: usamos el RAW para decidir si filtrar
-                aFilters.push(new sap.ui.model.Filter("Transporte", sap.ui.model.FilterOperator.EQ, sTransporte));
-            }
+          // Transporte
+          if (sTransporteRaw) {
+            // ojo: usamos el RAW para decidir si filtrar
+            aFilters.push(
+              new sap.ui.model.Filter(
+                "Transporte",
+                sap.ui.model.FilterOperator.EQ,
+                sTransporte
+              )
+            );
+          }
 
-            // Tipo (siempre; el backend ya interpreta "Ambos")
-            aFilters.push(new sap.ui.model.Filter("Campoadicional1", sap.ui.model.FilterOperator.EQ, sTipo));
+          // Tipo (siempre; el backend ya interpreta "Ambos")
+          aFilters.push(
+            new sap.ui.model.Filter(
+              "Campoadicional1",
+              sap.ui.model.FilterOperator.EQ,
+              sTipo
+            )
+          );
 
-            var that = this;
-            oODataModel.read("/ZVENTILADO_KPISet", {
-                filters: aFilters,
-                success: function (oData) {
-                    that.getView().getModel().setProperty("/tableData", oData.results || []);
-                },
-                error: function () {
-                    sap.m.MessageToast.show("Error al leer datos");
-                }
+          var that = this;
+          oODataModel.read("/ZVENTILADO_KPISet", {
+            filters: aFilters,
+            success: function (oData) {
+              that
+                .getView()
+                .getModel()
+                .setProperty("/tableData", oData.results || []);
+            },
+            error: function () {
+              sap.m.MessageToast.show("Error al leer datos");
+            },
+          });
+        },
+
+        onDownloadExcel: function () {
+          var aData = this.getView().getModel().getProperty("/tableData") || [];
+          if (!aData.length) {
+            sap.m.MessageToast.show("No hay datos para exportar");
+            return;
+          }
+          var exportExcel = function () {
+            var aCols = Object.keys(aData[0]);
+            var aRows = aData.map(function (row) {
+              return aCols.map(function (col) {
+                return row[col];
+              });
             });
-        }
-
-
-    });
-});
+            var ws = XLSX.utils.aoa_to_sheet([aCols].concat(aRows));
+            var wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "LogTransporte");
+            XLSX.writeFile(wb, "LogTransporte.xlsx");
+          };
+          if (typeof XLSX === "undefined") {
+            var sUrl =
+              "https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js";
+            var oScript = document.createElement("script");
+            oScript.type = "text/javascript";
+            oScript.src = sUrl;
+            oScript.onload = function () {
+              exportExcel();
+            };
+            oScript.onerror = function () {
+              sap.m.MessageToast.show("No se pudo cargar la librería XLSX");
+            };
+            document.head.appendChild(oScript);
+          } else {
+            exportExcel();
+          }
+        },
+      }
+    );
+  }
+);
