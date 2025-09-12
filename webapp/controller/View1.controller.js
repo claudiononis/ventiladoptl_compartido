@@ -563,7 +563,7 @@ sap.ui.define(
                           Inicioescaneo: sODataHoraFin,
                           Iniciodesafectacion: sODataHoraFin,
                           Cantidadean: cantidadEansUnicos,
-                          Campoadicional1: "PTL"
+                          Campoadicional1: "PTL",
                         };
 
                         oModel.create("/ZVENTILADO_KPISet", oEntry, {
@@ -1065,7 +1065,7 @@ sap.ui.define(
                       localStorage.removeItem("IpApi");
                       oView.byId("puesto").setValue("");
                       oView.byId("selDeposito").setEnabled(true);
-                      oView.byId("selDeposito").setEnabled(true);
+                      oView.byId("puesto").setEnabled(true);
                       oView.byId("btnAsignar").setEnabled(true);
                       MessageToast.show("Estacion asignada: " + oRow.Estacion);
                     },
