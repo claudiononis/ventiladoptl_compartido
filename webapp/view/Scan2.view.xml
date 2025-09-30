@@ -36,6 +36,7 @@
                         <Button id="parcialButton" text="Parcial" press="onParcialPress" enabled="false" />
                         <Button id="btCi2" enabled="false" text="COD. INTERNO" type="Reject" press="onOpenCodeInputDialog" class="button" />
                         <Label id="edtCI" text="" class="inputCodigoIntern" width="100px" />
+                        <Label id="edtTipo" text="" class="inputCodigoIntern" width="100px" />
                         <Label id="lDescripcion" text="" class="inputDescripcion" />
                     </HBox>
                     <HBox class="inputSection">                    

@@ -319,7 +319,16 @@ sap.ui.define(
                 "Error desconocido,  revise conexion de Internet y VPN";
             }
             BusyIndicator.hide(); // Ocultar
-            MessageToast.show(sErrorMessage);
+             MessageBox.information(
+              sErrorMessage,
+              {
+                title: "Informacion",
+                actions: [MessageBox.Action.OK],
+                onClose: function () {
+                  // Aquí puedes agregar lógica adicional si lo necesitas
+                }
+              }
+            );//           MessageToast.show(sErrorMessage);
           },
           timeout: 10000, // Establecer un tiempo de espera de 10 segundos
         });
@@ -499,6 +508,11 @@ sap.ui.define(
                     .getValue()
                     .padStart(10, "0");
 
+                  var sPtoPlanif = ctx
+                    .byId("pto_planif")
+                    .getValue().trim();
+                    
+
                   // Primero, buscar si ya existe el registro
                   var aFilters = [
                     new sap.ui.model.Filter(
@@ -550,8 +564,6 @@ sap.ui.define(
                           Cantidadentrega: 0,
                           Operador: ctx.byId("Usuario").getValue(),
                           Cantidaditem: totalCantidadEntrega,
-                          Campoadicional1: "",
-                          Campoadicional2: "",
                           Campoadicional3: "",
                           Cantidadcubeta: 0,
                           Cantidadpallet: 0,
@@ -564,6 +576,7 @@ sap.ui.define(
                           Iniciodesafectacion: sODataHoraFin,
                           Cantidadean: cantidadEansUnicos,
                           Campoadicional1: "PTL",
+                          Campoadicional2: sPtoPlanif,
                         };
 
                         oModel.create("/ZVENTILADO_KPISet", oEntry, {
