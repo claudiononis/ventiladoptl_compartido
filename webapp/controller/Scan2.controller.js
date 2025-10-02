@@ -58,17 +58,20 @@ sap.ui.define(
         window.addEventListener("popstate", this._handleUnload.bind(this));
         // Ejecutar acciones iniciales
         this.ejecutarAcciones();
-        this.getView().addEventDelegate({
-          onAfterRendering: () => {
-            const oModel = this.getView().getModel();
-            if (oModel.getProperty("/isStarted")) {
-              const oInput = this.byId("eanInput");
-              if (oInput) {
-                oInput.focus();
+        this.getView().addEventDelegate(
+          {
+            onAfterRendering: () => {
+              const oModel = this.getView().getModel();
+              if (oModel.getProperty("/isStarted")) {
+                const oInput = this.byId("eanInput");
+                if (oInput) {
+                  oInput.focus();
+                }
               }
-            }
-          }
-        }, this);
+            },
+          },
+          this
+        );
       },
 
       onRouteMatched: function () {
@@ -97,17 +100,20 @@ sap.ui.define(
         ci.setText("");
         // Ejecutar acciones cada vez que la ruta es navegada
         this.ejecutarAcciones();
-        this.getView().addEventDelegate({
-          onAfterRendering: () => {
-            const oModel = this.getView().getModel();
-            if (oModel.getProperty("/isStarted")) {
-              const oInput = this.byId("eanInput");
-              if (oInput) {
-                oInput.focus();
+        this.getView().addEventDelegate(
+          {
+            onAfterRendering: () => {
+              const oModel = this.getView().getModel();
+              if (oModel.getProperty("/isStarted")) {
+                const oInput = this.byId("eanInput");
+                if (oInput) {
+                  oInput.focus();
+                }
               }
-            }
-          }
-        }, this);
+            },
+          },
+          this
+        );
       },
       seRealizoDesafect: async function () {
         var oModel = new ODataModel("/sap/opu/odata/sap/ZVENTILADO_SRV/");
@@ -259,21 +265,21 @@ sap.ui.define(
           ) {
             return accumulator + Number(currentValue.SCAN);
           },
-            0);
+          0);
           var totalFalta = resultado.reduce(function (
             accumulator,
             currentValue
           ) {
             return accumulator + Number(currentValue.FALTA);
           },
-            0);
+          0);
           var totalCubTeo = resultado.reduce(function (
             accumulator,
             currentValue
           ) {
             return accumulator + Number(currentValue["Cub TEO"]);
           },
-            0);
+          0);
           //Recupera el estado del transporte
 
           // Nombres de las columnas
@@ -425,26 +431,26 @@ sap.ui.define(
           oModel.setProperty(
             "/realCubetasTotal",
             "Total : " +
-            tableDataArray.reduce(
-              (sum, item) => sum + (parseFloat(item["C Real"]) || 0),
-              0
-            )
+              tableDataArray.reduce(
+                (sum, item) => sum + (parseFloat(item["C Real"]) || 0),
+                0
+              )
           );
           oModel.setProperty(
             "/realPalletsTotal",
             "Total : " +
-            tableDataArray.reduce(
-              (sum, item) => sum + (parseFloat(item["Pa"]) || 0),
-              0
-            )
+              tableDataArray.reduce(
+                (sum, item) => sum + (parseFloat(item["Pa"]) || 0),
+                0
+              )
           );
           oModel.setProperty(
             "/realRollsTotal",
             "Total : " +
-            tableDataArray.reduce(
-              (sum, item) => sum + (parseFloat(item["Ro"]) || 0),
-              0
-            )
+              tableDataArray.reduce(
+                (sum, item) => sum + (parseFloat(item["Ro"]) || 0),
+                0
+              )
           );
           this.getView().setModel(oModel);
 
@@ -797,6 +803,15 @@ sap.ui.define(
                 return ((h * 60 + m) * 60 + s) * 1000;
               }
 
+              function toODataTime(timeStr) {
+                var parts = timeStr.split(":");
+                return "PT" + parts[0] + "H" + parts[1] + "M" + parts[2] + "S";
+              }
+
+              var sODataFechaInicio = "/Date(" + now.getTime() + ")/";
+              var sHoraActual = now.toTimeString().slice(0, 8); // "HH:MM:SS"
+              var sODataHoraInicio = toODataTime(sHoraActual);
+
               var cantidadRegistros =
                 Number(localStorage.getItem("avanceCantidadRegistros")) || 0;
               var totalKilo = localStorage.getItem("avanceTotalKilo") || "0";
@@ -812,7 +827,7 @@ sap.ui.define(
                   Duracionpreparacion: Math.floor(
                     (parseODataDurationToMilliseconds(sODataHoraActual) -
                       registro.Horainicio.ms) /
-                    60000
+                      60000
                   ),
                   Cantidadentrega: cantidadRegistros,
                   Kiloentrega: totalKilo,
@@ -834,6 +849,65 @@ sap.ui.define(
           },
           error: function (oError) {
             // No mostrar mensajes
+          },
+        });
+
+        var sTransporte = (function () {
+          var fullText = ctx.byId("transporte").getText();
+          var code = fullText.replace("Reparto: ", "").trim();
+          return code.padStart(10, "0");
+        })();
+        var sTipoLog = "SCAN";
+        var now = new Date();
+        var sHoraActual = now.toTimeString().slice(0, 8); // "HH:MM:SS"
+        var sODataHoraActual =
+          "PT" +
+          sHoraActual.split(":")[0] +
+          "H" +
+          sHoraActual.split(":")[1] +
+          "M" +
+          sHoraActual.split(":")[2] +
+          "S";
+
+        function toODataTime(timeStr) {
+          var parts = timeStr.split(":");
+          return "PT" + parts[0] + "H" + parts[1] + "M" + parts[2] + "S";
+        }
+
+        var sODataFechaInicio = "/Date(" + now.getTime() + ")/";
+        var sHoraActual = now.toTimeString().slice(0, 8); // "HH:MM:SS"
+        var sODataHoraInicio = toODataTime(sHoraActual);
+
+        var oEntry = {
+          Id: 0,
+          EventoNro: 0,
+          ScanNro: 0,
+          Ean: "",
+          CodigoInterno: "",
+          Descripcion: "",
+          Ruta: "",
+          Entregamasproducto: "",
+          Asignado: "",
+          TipoLog: sTipoLog,
+          Hora: sODataHoraInicio,
+          Fecha: sODataFechaInicio,
+          /*                 Preparador: ctx.byId("Usuario").getValue(), */
+          Cliente: "",
+          Entrega: "",
+          Estacion: (function () {
+            var fullText = ctx.byId("puestoScan").getText();
+            var code = fullText.replace("Estacion de trabajo Nro: ", "").trim();
+            return code;
+          })(),
+          Centro: "",
+          Transporte: sTransporte,
+          CantAsignada: 0,
+          ConfirmadoEnRuta: "",
+        };
+
+        oModel.create("/zlog_ventiladoSet", oEntry, {
+          error: function (err) {
+            MessageBox.error("Error al crear el evento.");
           },
         });
 
@@ -871,7 +945,6 @@ sap.ui.define(
               var Input3 = ctx.getView().byId("pausa");
               Input3.setEnabled(false);
               oModel.setProperty("/isStarted", true);
-
             }
             /* inicia reloj*/
             if (ctx.intervalId) {
@@ -901,11 +974,12 @@ sap.ui.define(
                 oInput.focus();
                 const dom = oInput.getFocusDomRef();
                 if (dom) {
-                  try { dom.select(); } catch (e) { }
+                  try {
+                    dom.select();
+                  } catch (e) {}
                 }
               }
             }, 1);
-
 
             // Attach the body click event
             document.body.addEventListener("click", ctx._onBodyClick.bind(ctx));
@@ -1001,7 +1075,7 @@ sap.ui.define(
         var descripcion = this.getView().byId("lDescripcion");
         var Ean = this.getView().byId("eanInput");
         var ci = this.getView().byId("edtCI");
-         var edtTipo = this.getView().byId("edtTipo");
+        var edtTipo = this.getView().byId("edtTipo");
         var oModel = this.getView().getModel();
         var parcialButton = this.getView().byId("parcialButton");
         var cantidadYRuta;
@@ -1023,7 +1097,7 @@ sap.ui.define(
               oModel.setProperty("/Kgbrv", cantidadYRuta.Kgbrv);
               oModel.setProperty("/M3v", cantidadYRuta.M3v);
               // Actualiza la pantalla
-edtTipo.setText(cantidadYRuta.M3teo);
+              edtTipo.setText(cantidadYRuta.M3teo);
               cantidad.setText(cantidadYRuta.cantidad);
               sRuta.setText(cantidadYRuta.ruta);
               sRuta.setText(cantidadYRuta.display);
@@ -1102,7 +1176,7 @@ edtTipo.setText(cantidadYRuta.M3teo);
               } else {
                 var Ean = this.getView().byId("eanInput");
                 var ci = this.getView().byId("edtCI");
-                ci.setText(cantidadYRuta.ci);   
+                ci.setText(cantidadYRuta.ci);
                 oModel.setProperty("/ultimoProdScan", cantidadYRuta.ci);
                 oModel.setProperty(
                   "/descUltimoProdScan",
@@ -1126,98 +1200,101 @@ edtTipo.setText(cantidadYRuta.M3teo);
             } else {
               cantidadYRuta = await this.obtenerCantidadYRuta(sValue, 2); // no es un producto( EAN) verifica si es un CI
               if (cantidadYRuta.cantidad > 0) {
-               //////////
-  // Buscar todas las combinaciones posibles en IndexedDB
-  var registros = await new Promise((resolve, reject) => {
-    var request = indexedDB.open("ventilado", 5);
-    request.onsuccess = function (event) {
-      var db = event.target.result;
-      var transaction = db.transaction(["ventilado"], "readonly");
-      var objectStore = transaction.objectStore("ventilado");
-      var index = objectStore.index("CodigoInterno");
-      var cursorRequest = index.openCursor(IDBKeyRange.only(sValue));
-      var resultados = [];
-      cursorRequest.onsuccess = function (event) {
-        var cursor = event.target.result;
-        if (cursor) {
-          resultados.push(cursor.value);
-          cursor.continue();
-        } else {
-         // Filtrar combinaciones únicas de CodigoInterno y M3teo
-          var unicos = [];
-          var combinaciones = new Set();
-          resultados.forEach(function(item) {
-            var clave = item.CodigoInterno + "_" + item.M3teo;
-            if (!combinaciones.has(clave)) {
-              combinaciones.add(clave);
-              unicos.push(item);
-            }
-          });
-          resolve(unicos);
-        }
-      };
-      cursorRequest.onerror = function (event) {
-        reject(event.target.error);
-      };
-    };
-    request.onerror = function (event) {
-      reject(event.target.error);
-    };
-  });
-if (registros.length > 1) {
-    
-    // Esperar a que el usuario elija una opción
-    var seleccion = await new Promise((resolve) => {
-      var oView = this.getView();
-      var oDialog = new sap.m.Dialog({
-        title: "Seleccione una combinación",
-        content: [
-          new sap.m.List({
-            items: registros.map(function (item) {
-              return new sap.m.StandardListItem({
-                title: "Presentacion: " + item.M3teo + " | EAN: " + item.Ean,
-                description: item.Descricion,
-                type: "Active",
-                press: function () {
-                  oDialog.close();
-                  resolve(item); // Resuelve la promesa con el item elegido
+                //////////
+                // Buscar todas las combinaciones posibles en IndexedDB
+                var registros = await new Promise((resolve, reject) => {
+                  var request = indexedDB.open("ventilado", 5);
+                  request.onsuccess = function (event) {
+                    var db = event.target.result;
+                    var transaction = db.transaction(["ventilado"], "readonly");
+                    var objectStore = transaction.objectStore("ventilado");
+                    var index = objectStore.index("CodigoInterno");
+                    var cursorRequest = index.openCursor(
+                      IDBKeyRange.only(sValue)
+                    );
+                    var resultados = [];
+                    cursorRequest.onsuccess = function (event) {
+                      var cursor = event.target.result;
+                      if (cursor) {
+                        resultados.push(cursor.value);
+                        cursor.continue();
+                      } else {
+                        // Filtrar combinaciones únicas de CodigoInterno y M3teo
+                        var unicos = [];
+                        var combinaciones = new Set();
+                        resultados.forEach(function (item) {
+                          var clave = item.CodigoInterno + "_" + item.M3teo;
+                          if (!combinaciones.has(clave)) {
+                            combinaciones.add(clave);
+                            unicos.push(item);
+                          }
+                        });
+                        resolve(unicos);
+                      }
+                    };
+                    cursorRequest.onerror = function (event) {
+                      reject(event.target.error);
+                    };
+                  };
+                  request.onerror = function (event) {
+                    reject(event.target.error);
+                  };
+                });
+                if (registros.length > 1) {
+                  // Esperar a que el usuario elija una opción
+                  var seleccion = await new Promise((resolve) => {
+                    var oView = this.getView();
+                    var oDialog = new sap.m.Dialog({
+                      title: "Seleccione una combinación",
+                      content: [
+                        new sap.m.List({
+                          items: registros.map(function (item) {
+                            return new sap.m.StandardListItem({
+                              title:
+                                "Presentacion: " +
+                                item.M3teo +
+                                " | EAN: " +
+                                item.Ean,
+                              description: item.Descricion,
+                              type: "Active",
+                              press: function () {
+                                oDialog.close();
+                                resolve(item); // Resuelve la promesa con el item elegido
+                              },
+                            });
+                          }),
+                        }),
+                      ],
+                      endButton: new sap.m.Button({
+                        text: "Cancelar",
+                        press: function () {
+                          oDialog.close();
+                          resolve(null); // Resuelve la promesa con null si cancela
+                        },
+                      }),
+                      afterClose: function () {
+                        oDialog.destroy();
+                      },
+                    });
+                    oView.addDependent(oDialog);
+                    oDialog.open();
+                  });
+
+                  if (seleccion) {
+                    var mainInput = this.getView().byId("edtCI");
+                    mainInput.setText(seleccion.CodigoInterno);
+                    var eanInput = this.byId("eanInput");
+                    var edtTipo = this.byId("edtTipo");
+                    edtTipo.setText(seleccion.M3teo);
+                    eanInput.setValue(seleccion.Ean);
+                    this.handleEanEnter(seleccion.Ean);
+                  } else {
+                    // El usuario canceló
+                    this.byId("dialogoCI").close();
+                  }
                 }
-              });
-            })
-          })
-        ],
-        endButton: new sap.m.Button({
-          text: "Cancelar",
-          press: function () {
-            oDialog.close();
-            resolve(null); // Resuelve la promesa con null si cancela
-          }
-        }),
-        afterClose: function () {
-          oDialog.destroy();
-        }
-      });
-      oView.addDependent(oDialog);
-      oDialog.open();
-    });
 
-    if (seleccion) {
-      
-      var mainInput = this.getView().byId("edtCI");
-      mainInput.setText(seleccion.CodigoInterno);
-      var eanInput = this.byId("eanInput");
-      var edtTipo = this.byId("edtTipo");  
-      edtTipo.setText(seleccion.M3teo);    
-      eanInput.setValue(seleccion.Ean);
-      this.handleEanEnter(seleccion.Ean);
-    } else {
-      // El usuario canceló
-      this.byId("dialogoCI").close();
-    }
-  
-  }
-
-               /////////
+                /////////
                 // Actualiza el modelo
                 console.log("es un ci");
                 oModel.setProperty("/ruta", cantidadYRuta.ruta);
@@ -1232,8 +1309,8 @@ if (registros.length > 1) {
                 oModel.setProperty("/Kgbrv", cantidadYRuta.Kgbrv);
                 oModel.setProperty("/M3v", cantidadYRuta.M3v);
                 // Actualiza la pantalla
-                 var edtTipo = this.getView().byId("edtTipo");
-                 edtTipo.setText(cantidadYRuta.M3teo);
+                var edtTipo = this.getView().byId("edtTipo");
+                edtTipo.setText(cantidadYRuta.M3teo);
                 cantidad.setText(cantidadYRuta.cantidad);
                 sRuta.setText(cantidadYRuta.ruta);
                 sRuta.setText(cantidadYRuta.display);
@@ -1361,7 +1438,7 @@ if (registros.length > 1) {
           if (ruta) {
             console.log("es una confirmacion");
             const tableData =
-            this.getView().getModel().getProperty("/tableData") || [];
+              this.getView().getModel().getProperty("/tableData") || [];
             const registroRuta = tableData.find((item) => item.Ruta === ruta);
 
             const objetoPTL = {
@@ -1726,7 +1803,6 @@ if (registros.length > 1) {
             M3v: datos.M3v,
             display: datos.DISPLAY,
             M3teo: datos.tipo,
-           
           }; // Devuelve un objeto con la cantidad y la ruta
         } catch (error) {
           // console.error("Error al obtener la cantidad y la ruta:", error);
@@ -1756,7 +1832,7 @@ if (registros.length > 1) {
 
       //********* fin escaneo **************************/
       //******* Abre pagina de ventilado- Cierre */
-      onCierrePress: function () { },
+      onCierrePress: function () {},
       //*******  Funcion para descargar las etiquetas  ****** */
       onGeneratePDF: function () {
         ctx2 = this;
@@ -1778,89 +1854,52 @@ if (registros.length > 1) {
             sReparto
           ),
         ];
-        oModel.read("/ZVENTILADO_KPISet", {
-          filters: aFilters,
-          success: function (oData) {
-            if (oData.results && oData.results.length > 0) {
-              // Hay al menos un registro, actualizamos Inicioescaneo
-              var registro = oData.results[0];
-              var now = new Date();
+        // Crear registro en zlog_ventiladoSet para cierre
+        var now = new Date();
+        var sHoraActual = now.toTimeString().slice(0, 8); // "HH:MM:SS"
+        var sODataHoraActual =
+          "PT" +
+          sHoraActual.split(":")[0] +
+          "H" +
+          sHoraActual.split(":")[1] +
+          "M" +
+          sHoraActual.split(":")[2] +
+          "S";
+        var sODataFechafin = "/Date(" + now.getTime() + ")/";
 
-              // Formatear la hora actual como "HH:MM:SS"
-              var sHoraActual = now.toTimeString().slice(0, 8);
-              var sODataHoraActual =
-                "PT" +
-                sHoraActual.split(":")[0] +
-                "H" +
-                sHoraActual.split(":")[1] +
-                "M" +
-                sHoraActual.split(":")[2] +
-                "S";
-
-              // Función para convertir OData duration a milisegundos
-              function parseODataDurationToMilliseconds(durationStr) {
-                if (typeof durationStr !== "string") return 0;
-                const match = durationStr.match(/PT(\d+)H(\d+)M(\d+)S/);
-                if (!match) return 0;
-                const [, h, m, s] = match.map(Number);
-                return ((h * 60 + m) * 60 + s) * 1000;
-              }
-
-              //Calcular tiempo de pausa
-              var tiempobruto = Math.floor(
-                (parseODataDurationToMilliseconds(sODataHoraActual) -
-                  registro.Horainicio.ms) /
-                60000
-              );
-
-              // Calcular tiempo final
-              var sDuracionfinal = Math.floor(
-                (parseODataDurationToMilliseconds(sODataHoraActual) -
-                  registro.Iniciodesafectacion.ms) /
-                60000
-              );
-
-              //Tiempo productivo
-              var tiempoproductivo =
-                registro.Duracionpreparacion +
-                registro.Duracionneta +
-                sDuracionfinal;
-
-              //Tiempo de pausa
-              var tiempoPausa = tiempobruto - tiempoproductivo;
-
-              var sODataFechafin = "/Date(" + now.getTime() + ")/";
-
-              // Objeto para la actualización
-              var oUpdate = [
-                {
-                  Id: registro.Id,
-                  Fechafin: sODataFechafin,
-                  Horafin: sODataHoraActual,
-                  Duracionfinal: sDuracionfinal,
-                  Tiempobruto: Math.floor(
-                    (parseODataDurationToMilliseconds(sODataHoraActual) -
-                      registro.Horainicio.ms) /
-                    60000
-                  ),
-                  Tiempoproductivo: tiempoproductivo,
-                  Tiempopausa: tiempoPausa,
-                },
-              ];
-
-              if (registro.Horafin.ms == "0") {
-                ctx2.crud(
-                  "ACTUALIZAR",
-                  "ZVENTILADO_KPI",
-                  registro.Id,
-                  oUpdate,
-                  ""
-                );
-              }
-            }
-          },
-          error: function (oError) {
-            // No mostrar mensajes
+        var sTransporte = (function () {
+          var fullText = ctx2.byId("transporte").getText();
+          var code = fullText.replace("Reparto: ", "").trim();
+          return code.padStart(10, "0");
+        })();
+        var oEntry = {
+          Id: 0,
+          EventoNro: 0,
+          ScanNro: 0,
+          Ean: "",
+          CodigoInterno: "",
+          Descripcion: "",
+          Ruta: "",
+          Entregamasproducto: "",
+          Asignado: "",
+          TipoLog: "CIERRE",
+          Hora: sODataHoraActual,
+          Fecha: sODataFechafin,
+          Cliente: "",
+          Entrega: "",
+          Estacion: (function () {
+            var fullText = ctx2.byId("puestoScan").getText();
+            var code = fullText.replace("Estacion de trabajo Nro: ", "").trim();
+            return code;
+          })(),
+          Centro: "",
+          Transporte: sTransporte,
+          CantAsignada: 0,
+          ConfirmadoEnRuta: "",
+        };
+        oModel.create("/zlog_ventiladoSet", oEntry, {
+          error: function (err) {
+            MessageBox.error("Error al crear el evento de cierre.");
           },
         });
 
@@ -1997,7 +2036,7 @@ if (registros.length > 1) {
       },
 
       // Método para manejar la confirmación del valor ingresado en el diálogo del código interno
-    /*   onCodeInputConfirm: async function () {
+      /*   onCodeInputConfirm: async function () {
         var codeInput = this.byId("codeInput");
         var inputValue = codeInput.getValue();
 
@@ -2395,7 +2434,7 @@ if (registros.length > 1) {
         };
       },
       // Método para manejar el evento afterClose del diálogo
-      onStopDialogClose: function (oEvent) { },
+      onStopDialogClose: function (oEvent) {},
 
       /******  Llamada ejemplo al CRUD  ****************
                                           
@@ -2780,8 +2819,8 @@ if (registros.length > 1) {
                   return;
                 }
                 index = objectStore.index("Ean");
-                // nuevo   
-                 var cursorRequest = index.openCursor(IDBKeyRange.only(sKey));
+                // nuevo
+                var cursorRequest = index.openCursor(IDBKeyRange.only(sKey));
               } else {
                 // Verificar si el índice "CodigoInterno" existe
                 if (!objectStore.indexNames.contains("CodigoInterno")) {
@@ -2844,7 +2883,7 @@ if (registros.length > 1) {
                         Kgbrv: data.Kgbrv,
                         M3v: data.M3v,
                         DISPLAY: data.display.replace("dsp-", ""),
-                        tipo:data.M3teo,
+                        tipo: data.M3teo,
                       };
                       flag = 2;
                       resolve(result);
@@ -2997,8 +3036,8 @@ if (registros.length > 1) {
                   campoBusqueda === "id"
                     ? objectStore.get(datos.id)
                     : objectStore
-                      .index(campoBusqueda)
-                      .get(datos[campoBusqueda]);
+                        .index(campoBusqueda)
+                        .get(datos[campoBusqueda]);
                 break;
 
               case "actualizar":
@@ -3265,6 +3304,60 @@ if (registros.length > 1) {
         );
         clearInterval(this.getOwnerComponent()._clockInterval);
         this.getView().getModel().setProperty("/isStarted", false);
+
+        // Crear log de pausa en zlog_ventiladoSet
+        var ctx = this;
+        var oModel = new sap.ui.model.odata.v2.ODataModel(
+          "/sap/opu/odata/sap/ZVENTILADO_SRV/",
+          {
+            useBatch: false,
+            defaultBindingMode: "TwoWay",
+          }
+        );
+        var sTransporte = (function () {
+          var fullText = ctx.byId("transporte").getText();
+          var code = fullText.replace("Reparto: ", "").trim();
+          return code.padStart(10, "0");
+        })();
+        var sTipoLog = "PAUSE";
+        var now = new Date();
+        var sHoraActual = now.toTimeString().slice(0, 8); // "HH:MM:SS"
+        function toODataTime(timeStr) {
+          var parts = timeStr.split(":");
+          return "PT" + parts[0] + "H" + parts[1] + "M" + parts[2] + "S";
+        }
+        var sODataFechaInicio = "/Date(" + now.getTime() + ")/";
+        var sODataHoraInicio = toODataTime(sHoraActual);
+        var oEntry = {
+          Id: 0,
+          EventoNro: 0,
+          ScanNro: 0,
+          Ean: "",
+          CodigoInterno: "",
+          Descripcion: "",
+          Ruta: "",
+          Entregamasproducto: "",
+          Asignado: "",
+          TipoLog: sTipoLog,
+          Hora: sODataHoraInicio,
+          Fecha: sODataFechaInicio,
+          Cliente: "",
+          Entrega: "",
+          Estacion: (function () {
+            var fullText = ctx.byId("puestoScan").getText();
+            var code = fullText.replace("Estacion de trabajo Nro: ", "").trim();
+            return code;
+          })(),
+          Centro: "",
+          Transporte: sTransporte,
+          CantAsignada: 0,
+          ConfirmadoEnRuta: "",
+        };
+        oModel.create("/zlog_ventiladoSet", oEntry, {
+          error: function (err) {
+            sap.m.MessageBox.error("Error al crear el evento de pausa.");
+          },
+        });
       },
 
       onStop: function () {
@@ -3380,11 +3473,11 @@ if (registros.length > 1) {
           .catch((err) => {
             MessageBox.error(
               "Error de red al llamar a PickToLine API.\n\n" +
-              "Por favor, verifique:\n" +
-              "1. Que la maquina donde corre la API este encendida y accesible.\n" +
-              "2. Que la conexión de red este activa (VPN, firewall, cables).\n" +
-              "3. Si lo anterior es correcto, reinicie la maquina que contiene la API.\n" +
-              "4. Vuelva a reiniciar el escaneo.",
+                "Por favor, verifique:\n" +
+                "1. Que la maquina donde corre la API este encendida y accesible.\n" +
+                "2. Que la conexión de red este activa (VPN, firewall, cables).\n" +
+                "3. Si lo anterior es correcto, reinicie la maquina que contiene la API.\n" +
+                "4. Vuelva a reiniciar el escaneo.",
               {
                 title: "Error de red PickToLine",
                 actions: [MessageBox.Action.CLOSE],
@@ -3701,102 +3794,102 @@ if (registros.length > 1) {
         });
       },
 
-onCodeInputConfirm: async function () {
-  var codeInput = this.byId("eanInput");
-  var inputValue = codeInput.getValue();
+      onCodeInputConfirm: async function () {
+        var codeInput = this.byId("eanInput");
+        var inputValue = codeInput.getValue();
 
-  // Buscar todas las combinaciones posibles en IndexedDB
-  var registros = await new Promise((resolve, reject) => {
-    var request = indexedDB.open("ventilado", 5);
-    request.onsuccess = function (event) {
-      var db = event.target.result;
-      var transaction = db.transaction(["ventilado"], "readonly");
-      var objectStore = transaction.objectStore("ventilado");
-      var index = objectStore.index("CodigoInterno");
-      var cursorRequest = index.openCursor(IDBKeyRange.only(inputValue));
-      var resultados = [];
-      cursorRequest.onsuccess = function (event) {
-        var cursor = event.target.result;
-        if (cursor) {
-          resultados.push(cursor.value);
-          cursor.continue();
-        } else {
-         // Filtrar combinaciones únicas de CodigoInterno y M3teo
-          var unicos = [];
-          var combinaciones = new Set();
-          resultados.forEach(function(item) {
-            var clave = item.CodigoInterno + "_" + item.M3teo;
-            if (!combinaciones.has(clave)) {
-              combinaciones.add(clave);
-              unicos.push(item);
-            }
-          });
-          resolve(unicos);
-        }
-      };
-      cursorRequest.onerror = function (event) {
-        reject(event.target.error);
-      };
-    };
-    request.onerror = function (event) {
-      reject(event.target.error);
-    };
-  });
+        // Buscar todas las combinaciones posibles en IndexedDB
+        var registros = await new Promise((resolve, reject) => {
+          var request = indexedDB.open("ventilado", 5);
+          request.onsuccess = function (event) {
+            var db = event.target.result;
+            var transaction = db.transaction(["ventilado"], "readonly");
+            var objectStore = transaction.objectStore("ventilado");
+            var index = objectStore.index("CodigoInterno");
+            var cursorRequest = index.openCursor(IDBKeyRange.only(inputValue));
+            var resultados = [];
+            cursorRequest.onsuccess = function (event) {
+              var cursor = event.target.result;
+              if (cursor) {
+                resultados.push(cursor.value);
+                cursor.continue();
+              } else {
+                // Filtrar combinaciones únicas de CodigoInterno y M3teo
+                var unicos = [];
+                var combinaciones = new Set();
+                resultados.forEach(function (item) {
+                  var clave = item.CodigoInterno + "_" + item.M3teo;
+                  if (!combinaciones.has(clave)) {
+                    combinaciones.add(clave);
+                    unicos.push(item);
+                  }
+                });
+                resolve(unicos);
+              }
+            };
+            cursorRequest.onerror = function (event) {
+              reject(event.target.error);
+            };
+          };
+          request.onerror = function (event) {
+            reject(event.target.error);
+          };
+        });
 
-  if (registros.length === 1) {
-    // Solo una combinación, seguir como antes
-    var mainInput = this.getView().byId("edtCI");
-    mainInput.setText(inputValue);
-    this.byId("dialogoCI").close();
-    var datos = registros[0];
-    var eanInput = this.byId("eanInput");
-    eanInput.setValue(datos.Ean);
-    this.handleEanEnter(datos.Ean);
-  } else if (registros.length > 1) {
-    // Más de una combinación, mostrar popup para elegir
-    var oView = this.getView();
-    var oDialog = new sap.m.Dialog({
-      title: "Seleccione una combinación",
-      content: [
-        new sap.m.List({
-          items: registros.map(function (item) {
-            return new sap.m.StandardListItem({
-              title: "M3teo: " + item.M3teo + " | EAN: " + item.Ean,
-              description: item.Descricion,
-              type: "Active",
+        if (registros.length === 1) {
+          // Solo una combinación, seguir como antes
+          var mainInput = this.getView().byId("edtCI");
+          mainInput.setText(inputValue);
+          this.byId("dialogoCI").close();
+          var datos = registros[0];
+          var eanInput = this.byId("eanInput");
+          eanInput.setValue(datos.Ean);
+          this.handleEanEnter(datos.Ean);
+        } else if (registros.length > 1) {
+          // Más de una combinación, mostrar popup para elegir
+          var oView = this.getView();
+          var oDialog = new sap.m.Dialog({
+            title: "Seleccione una combinación",
+            content: [
+              new sap.m.List({
+                items: registros.map(function (item) {
+                  return new sap.m.StandardListItem({
+                    title: "M3teo: " + item.M3teo + " | EAN: " + item.Ean,
+                    description: item.Descricion,
+                    type: "Active",
+                    press: function () {
+                      oDialog.close();
+                      var mainInput = oView.byId("edtCI");
+                      mainInput.setText(item.CodigoInterno);
+                      var eanInput = oView.byId("eanInput");
+                      eanInput.setValue(item.Ean);
+                      oView.getController().handleEanEnter(item.Ean);
+                    },
+                  });
+                }),
+              }),
+            ],
+            endButton: new sap.m.Button({
+              text: "Cancelar",
               press: function () {
                 oDialog.close();
-                var mainInput = oView.byId("edtCI");
-                mainInput.setText(item.CodigoInterno);
-                var eanInput = oView.byId("eanInput");
-                eanInput.setValue(item.Ean);
-                oView.getController().handleEanEnter(item.Ean);
-              }
-            });
-          })
-        })
-      ],
-      endButton: new sap.m.Button({
-        text: "Cancelar",
-        press: function () {
-          oDialog.close();
+              },
+            }),
+            afterClose: function () {
+              oDialog.destroy();
+            },
+          });
+          oView.addDependent(oDialog);
+          oDialog.open();
+        } else {
+          // No se encontró ninguna combinación
+          sap.m.MessageBox.error(
+            "No se encontraron registros para el código ingresado."
+          );
+          this.byId("dialogoCI").close();
         }
-      }),
-      afterClose: function () {
-        oDialog.destroy();
-      }
-    });
-    oView.addDependent(oDialog);
-    oDialog.open();
-  } else {
-    // No se encontró ninguna combinación
-    sap.m.MessageBox.error("No se encontraron registros para el código ingresado.");
-    this.byId("dialogoCI").close();
-  }
-},
-///////
-
-
+      },
+      ///////
     });
   }
 );

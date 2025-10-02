@@ -319,16 +319,13 @@ sap.ui.define(
                 "Error desconocido,  revise conexion de Internet y VPN";
             }
             BusyIndicator.hide(); // Ocultar
-             MessageBox.information(
-              sErrorMessage,
-              {
-                title: "Informacion",
-                actions: [MessageBox.Action.OK],
-                onClose: function () {
-                  // Aquí puedes agregar lógica adicional si lo necesitas
-                }
-              }
-            );//           MessageToast.show(sErrorMessage);
+            MessageBox.information(sErrorMessage, {
+              title: "Informacion",
+              actions: [MessageBox.Action.OK],
+              onClose: function () {
+                // Aquí puedes agregar lógica adicional si lo necesitas
+              },
+            }); //           MessageToast.show(sErrorMessage);
           },
           timeout: 10000, // Establecer un tiempo de espera de 10 segundos
         });
@@ -508,10 +505,8 @@ sap.ui.define(
                     .getValue()
                     .padStart(10, "0");
 
-                  var sPtoPlanif = ctx
-                    .byId("pto_planif")
-                    .getValue().trim();
-                    
+                  var sPtoPlanif = ctx.byId("pto_planif").getValue().trim();
+                  var sTipoLog = "BD";
 
                   // Primero, buscar si ya existe el registro
                   var aFilters = [
@@ -520,18 +515,18 @@ sap.ui.define(
                       sap.ui.model.FilterOperator.EQ,
                       sTransporte
                     ),
+                    new sap.ui.model.Filter(
+                      "TipoLog",
+                      sap.ui.model.FilterOperator.EQ,
+                      sTipoLog
+                    ),
                   ];
-                  oModel.read("/ZVENTILADO_KPISet", {
+                  oModel.read("/zlog_ventiladoSet", {
                     filters: aFilters,
                     success: function (oData) {
                       if (oData.results && oData.results.length === 0) {
                         // No existe, entonces hago el create
                         var now = new Date();
-                        var sODataFechaInicio = "/Date(" + now.getTime() + ")/";
-                        var sODataFechaFin =
-                          "/Date(" +
-                          new Date(1900, 0, 1, 0, 0, 0).getTime() +
-                          ")/";
 
                         // Edm.Time formato OData: PTxxHxxMxxS
                         function toODataTime(timeStr) {
@@ -546,10 +541,63 @@ sap.ui.define(
                             "S"
                           );
                         }
+                        var sODataFechaInicio = "/Date(" + now.getTime() + ")/";
+                        var sODataFechaFin =
+                          "/Date(" +
+                          new Date(1900, 0, 1, 0, 0, 0).getTime() +
+                          ")/";
                         var sHoraActual = now.toTimeString().slice(0, 8); // "HH:MM:SS"
-                        var sODataHoraInicio = toODataTime(sHoraActual);
                         var sODataHoraFin = toODataTime("00:00:00");
+                        var sODataHoraInicio = toODataTime(sHoraActual);
                         var oEntry = {
+                          Id: 0,
+                          EventoNro: 0,
+                          ScanNro: 0,
+                          Ean: "",
+                          CodigoInterno: "",
+                          Descripcion: "",
+                          Ruta: "",
+                          Entregamasproducto: "",
+                          Asignado: "",
+                          TipoLog: sTipoLog,
+                          Hora: sODataHoraInicio,
+                          Fecha: sODataFechaInicio,
+                          Preparador: ctx.byId("Usuario").getValue(),
+                          Cliente: "",
+                          Entrega: "",
+                          Estacion: ctx.byId("puesto").getValue(),
+                          Centro: "",
+                          Transporte: sTransporte,
+                          CantAsignada: 0,
+                          ConfirmadoEnRuta: "",
+                        };
+
+                        // Primer create: zlog_ventiladoSet
+                        oModel.create("/zlog_ventiladoSet", oEntry, {
+                          success: function (data) {
+                            //MessageToast.show("Iniciando P");
+                            // Reiniciar e iniciar el cronómetro correctamente
+                            var oClockModel = ctx
+                              .getOwnerComponent()
+                              .getModel("clock");
+                            oClockModel.setProperty("/time", "00:00:00");
+                            oClockModel.setProperty("/elapsedSeconds", 0);
+                            oClockModel.setProperty("/isRunning", true);
+                            localStorage.setItem(
+                              "clockData",
+                              JSON.stringify(oClockModel.getData())
+                            );
+                            ctx
+                              .getOwnerComponent()
+                              ._startClockTimer(oClockModel);
+                          },
+                          error: function (err) {
+                            MessageBox.error("Error al crear el evento.");
+                          },
+                        });
+
+                        // Segundo create: ZVENTILADO_KPISet
+                        var oEntryKPI = {
                           Estacion: ctx.byId("puesto").getValue(),
                           Transporte: ctx
                             .byId("reparto")
@@ -579,23 +627,9 @@ sap.ui.define(
                           Campoadicional2: sPtoPlanif,
                         };
 
-                        oModel.create("/ZVENTILADO_KPISet", oEntry, {
+                        oModel.create("/ZVENTILADO_KPISet", oEntryKPI, {
                           success: function (data) {
-                            //MessageToast.show("Iniciando P");
-                            // Reiniciar e iniciar el cronómetro correctamente
-                            var oClockModel = ctx
-                              .getOwnerComponent()
-                              .getModel("clock");
-                            oClockModel.setProperty("/time", "00:00:00");
-                            oClockModel.setProperty("/elapsedSeconds", 0);
-                            oClockModel.setProperty("/isRunning", true);
-                            localStorage.setItem(
-                              "clockData",
-                              JSON.stringify(oClockModel.getData())
-                            );
-                            ctx
-                              .getOwnerComponent()
-                              ._startClockTimer(oClockModel);
+                            MessageToast.show("KPI creado correctamente.");
                           },
                           error: function (err) {
                             MessageBox.error("Error al crear registro KPI.");
