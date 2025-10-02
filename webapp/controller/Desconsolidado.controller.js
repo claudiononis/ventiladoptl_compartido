@@ -22,7 +22,7 @@ sap.ui.define(
     "use strict";
     var ctx = this; // Variable eglobal en el controlador para guardar el contexto
     var sTransporte;
-    var sPuesto;
+    var sPuesto; //Estacion
     var sReparto;
     var sPtoPlanif;
     var sUsuario;
@@ -358,7 +358,6 @@ sap.ui.define(
           oRouter.navTo("Verdesafectacion");
         },
         onDesafectacionPress: function () {
-          //INSERTAR MISMO CODIGO QUE EN ONSTART DE SCAN2
           ctx = this;
           var oModel = new sap.ui.model.odata.v2.ODataModel(
             "/sap/opu/odata/sap/ZVENTILADO_SRV/",
@@ -375,67 +374,6 @@ sap.ui.define(
               sReparto
             ),
           ];
-          oModel.read("/ZVENTILADO_KPISet", {
-            filters: aFilters,
-            success: function (oData) {
-              if (oData.results && oData.results.length > 0) {
-                // Hay al menos un registro, actualizamos Inicioescaneo
-                var registro = oData.results[0];
-                var now = new Date();
-                var sHoraActual = now.toTimeString().slice(0, 8); // "HH:MM:SS"
-                var sODataHoraActual =
-                  "PT" +
-                  sHoraActual.split(":")[0] +
-                  "H" +
-                  sHoraActual.split(":")[1] +
-                  "M" +
-                  sHoraActual.split(":")[2] +
-                  "S";
-
-                function parseODataDurationToMilliseconds(durationStr) {
-                  if (typeof durationStr !== "string") return 0;
-                  const match = durationStr.match(/PT(\d+)H(\d+)M(\d+)S/);
-                  if (!match) return 0;
-                  const [, h, m, s] = match.map(Number);
-                  return ((h * 60 + m) * 60 + s) * 1000;
-                }
-
-                const oClockModel = ctx.getOwnerComponent().getModel("clock");
-                const tiempoReloj = oClockModel.getProperty("/time");
-                oClockModel.setProperty("/isRunning", false);
-
-                function timeStringToMinutes(timeStr) {
-                  if (!timeStr) return 0;
-                  const [h, m] = timeStr.split(":").map(Number);
-                  return h * 60 + m;
-                }
-
-                const tiempoRelojMinutos = timeStringToMinutes(tiempoReloj);
-
-                var oUpdate = [
-                  {
-                    Id: registro.Id,
-                    Iniciodesafectacion: sODataHoraActual,
-                    Duracionneta:
-                      tiempoRelojMinutos - registro.Duracionpreparacion,
-                  },
-                ];
-
-                if (registro.Iniciodesafectacion.ms == "0") {
-                  ctx.crud(
-                    "ACTUALIZAR",
-                    "ZVENTILADO_KPI",
-                    registro.Id,
-                    oUpdate,
-                    ""
-                  );
-                }
-              }
-            },
-            error: function (oError) {
-              // No mostrar mensajes
-            },
-          });
 
           //
           var oModel = new ODataModel("/sap/opu/odata/sap/ZVENTILADO_SRV/");
@@ -466,6 +404,64 @@ sap.ui.define(
                   }
                 );
               } else {
+                var dModel = new sap.ui.model.odata.v2.ODataModel(
+                  "/sap/opu/odata/sap/ZVENTILADO_SRV/",
+                  {
+                    useBatch: false,
+                    defaultBindingMode: "TwoWay",
+                  }
+                );
+                // Crear evento de desafectacion en ZLOG_VENTILADOSet
+                var sTransporte = ctx
+                  .getView()
+                  .getModel()
+                  .getProperty("/tableData/0/Transporte");
+                if (typeof sTransporte === "string") {
+                  sTransporte = sTransporte.trim().padStart(10, "0");
+                } else {
+                  sTransporte = String(sTransporte).padStart(10, "0");
+                }
+                var sTipoLog = "DESAFECTAR";
+                var now = new Date();
+                var sHoraActual = now.toTimeString().slice(0, 8); // "HH:MM:SS"
+                function toODataTime(timeStr) {
+                  var parts = timeStr.split(":");
+                  return (
+                    "PT" + parts[0] + "H" + parts[1] + "M" + parts[2] + "S"
+                  );
+                }
+                var sODataFechaInicio = "/Date(" + now.getTime() + ")/";
+                var sODataHoraInicio = toODataTime(sHoraActual);
+                var oEntry = {
+                  Id: 0,
+                  EventoNro: 0,
+                  ScanNro: 0,
+                  Ean: "",
+                  CodigoInterno: "",
+                  Descripcion: "",
+                  Ruta: "",
+                  Entregamasproducto: "",
+                  Asignado: "",
+                  TipoLog: sTipoLog,
+                  Hora: sODataHoraInicio,
+                  Fecha: sODataFechaInicio,
+                  Cliente: "",
+                  Entrega: "",
+                  Estacion: "",
+                  Centro: "",
+                  Transporte: sTransporte,
+                  CantAsignada: 0,
+                  ConfirmadoEnRuta: "",
+                };
+
+                dModel.create("/zlog_ventiladoSet", oEntry, {
+                  error: function (err) {
+                    sap.m.MessageBox.error(
+                      "Error al crear el evento de desafectación."
+                    );
+                  },
+                });
+
                 // Si no hay registros, no se hizo desafectacion
                 console.log("No hay registros en el OData."); //No serealizo la  desafectacion
                 MessageBox.warning(

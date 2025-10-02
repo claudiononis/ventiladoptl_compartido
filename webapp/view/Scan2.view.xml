@@ -23,7 +23,7 @@
                         <Button id="pausa" text="Pause" press="onPause" visible="{/isStarted}" enabled="{=${/isStarted}}" />
                         <Button id="stop" text="Cierre de ventilado" type="Reject" press="onStopDialog" visible="{/isStarted}" icon="sap-icon://flag" />
                         <!--<Button id="parcialButton" text="Parcial" press="onParcialPress" enabled="false"/>-->
-                        <Text text="{/puesto}" class="blackBackground" />
+                        <Text id="puestoScan" text="{/puesto}" class="blackBackground" />
                         <Text id="transporte" text="{/transporte}" class="blackBackground" />
                         <!--<Text text="{/elapsedTime}" />-->
                         <Button text="Print Etiquetas" press="onGeneratePDF" icon="sap-icon://print" enabled="{=${/printEtiquetas}}"/>

@@ -57,6 +57,7 @@
 
             <m:HBox class="sapUiSmallMarginBottom">
                 <m:Button text="Descargar Excel" icon="sap-icon://excel-attachment" press=".onDownloadExcel"/>
+                <m:Button text="Descargar Crudo" icon="sap-icon://activity-items" press=".onDownloadExcelCrudo" class="sapUiTinyMarginBegin"/>
             </m:HBox>
 
             <!-- Tabla desktop con scrollbar vertical propio -->
@@ -69,12 +70,13 @@
 
                 <!-- Columnas -->
                 <columns>
+                    <!-- Columna de checkbox eliminada -->
                     <Column label="Fecha" width="5rem" resizable="true">
                         <template>
                             <m:Text wrapping="false" text="{path: 'Fechainicio',
-             type: 'sap.ui.model.odata.type.DateTime',
-             constraints: { displayFormat: 'Date', UTC: true },
-             formatOptions: { pattern: 'dd-MM-yy', UTC: true }}"/>
+                                type: 'sap.ui.model.odata.type.DateTime',
+                                constraints: { displayFormat: 'Date', UTC: true },
+                                formatOptions: { pattern: 'dd-MM-yy', UTC: true }}"/>
                         </template>
                     </Column>
 
