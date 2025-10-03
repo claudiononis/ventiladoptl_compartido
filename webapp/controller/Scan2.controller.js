@@ -1730,8 +1730,7 @@ sap.ui.define(
                   kgbrr,
                   M3r
                 );
-                /* ctx.recalcularDatosDeModelo();
-                                             ctx.verificarCicloCompletado();*/
+                
                 ctx.recalcularDatosDeModelo().then(function () {
                   ctx.verificarCicloCompletado();
                 });
