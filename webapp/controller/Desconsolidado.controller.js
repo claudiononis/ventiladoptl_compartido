@@ -432,6 +432,13 @@ sap.ui.define(
                 }
                 var sODataFechaInicio = "/Date(" + now.getTime() + ")/";
                 var sODataHoraInicio = toODataTime(sHoraActual);
+                var estacionValue =
+                  localStorage.getItem("estacion") ||
+                  localStorage.getItem("sPuesto") ||
+                  "";
+                var centroValue = localStorage.getItem("depositoCod") || "";
+                var preparadorValue = localStorage.getItem("sPreparador") || "";
+                var entregaValue = localStorage.getItem("sPtoPlanif") || "";
                 var oEntry = {
                   Id: 0,
                   EventoNro: 0,
@@ -440,15 +447,14 @@ sap.ui.define(
                   CodigoInterno: "",
                   Descripcion: "",
                   Ruta: "",
-                  Entregamasproducto: "",
-                  Asignado: "",
                   TipoLog: sTipoLog,
                   Hora: sODataHoraInicio,
                   Fecha: sODataFechaInicio,
                   Cliente: "",
-                  Entrega: "",
-                  Estacion: "",
-                  Centro: "",
+                  Estacion: estacionValue,
+                  Entrega: entregaValue,
+                  Centro: centroValue,
+                  Preparador: preparadorValue,
                   Transporte: sTransporte,
                   CantAsignada: 0,
                   ConfirmadoEnRuta: "",

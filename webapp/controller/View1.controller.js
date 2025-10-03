@@ -506,7 +506,7 @@ sap.ui.define(
                     .padStart(10, "0");
 
                   var sPtoPlanif = ctx.byId("pto_planif").getValue().trim();
-                  var sTipoLog = "BD";
+                  var sTipoLog = "BUSC.DATOS";
 
                   // Primero, buscar si ya existe el registro
                   var aFilters = [
@@ -549,6 +549,12 @@ sap.ui.define(
                         var sHoraActual = now.toTimeString().slice(0, 8); // "HH:MM:SS"
                         var sODataHoraFin = toODataTime("00:00:00");
                         var sODataHoraInicio = toODataTime(sHoraActual);
+                        var centroValue =
+                          localStorage.getItem("depositoCod") || "";
+                        var preparadorValue =
+                          localStorage.getItem("sPreparador") || "";
+                        var entregaValue =
+                          localStorage.getItem("sPtoPlanif") || "";
                         var oEntry = {
                           Id: 0,
                           EventoNro: 0,
@@ -557,16 +563,15 @@ sap.ui.define(
                           CodigoInterno: "",
                           Descripcion: "",
                           Ruta: "",
-                          Entregamasproducto: "",
-                          Asignado: "",
                           TipoLog: sTipoLog,
                           Hora: sODataHoraInicio,
                           Fecha: sODataFechaInicio,
                           Preparador: ctx.byId("Usuario").getValue(),
                           Cliente: "",
-                          Entrega: "",
+                          Entrega: entregaValue,
+                          Centro: centroValue,
+                          Preparador: preparadorValue,
                           Estacion: ctx.byId("puesto").getValue(),
-                          Centro: "",
                           Transporte: sTransporte,
                           CantAsignada: 0,
                           ConfirmadoEnRuta: "",
