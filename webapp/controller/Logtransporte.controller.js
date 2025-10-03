@@ -324,6 +324,48 @@ sap.ui.define(
                 // Si Transporte es igual, ordenar por EventoNro
                 return (a.EventoNro || 0) - (b.EventoNro || 0);
               });
+              // Formatear campo Hora (objeto con ms en milisegundos) como HH:MM:SS
+              aSorted.forEach(function (item) {
+                if (
+                  item.Hora &&
+                  typeof item.Hora === "object" &&
+                  typeof item.Hora.ms === "number"
+                ) {
+                  var totalSeconds = Math.floor(item.Hora.ms / 1000);
+                  var h = Math.floor(totalSeconds / 3600);
+                  var m = Math.floor((totalSeconds % 3600) / 60);
+                  var s = totalSeconds % 60;
+                  item.Hora =
+                    String(h).padStart(2, "0") +
+                    ":" +
+                    String(m).padStart(2, "0") +
+                    ":" +
+                    String(s).padStart(2, "0");
+                } else if (!item.Hora) {
+                  item.Hora = "";
+                }
+              });
+              // Reemplazar Fechainicio por formato DD/MM/AAAA
+              aSorted.forEach(function (item) {
+                if (item.Fecha) {
+                  var d = new Date(item.Fecha);
+                  if (!isNaN(d)) {
+                    var p2 = function (x) {
+                      return String(x).padStart(2, "0");
+                    };
+                    item.Fecha =
+                      p2(d.getDate()) +
+                      "/" +
+                      p2(d.getMonth() + 1) +
+                      "/" +
+                      d.getFullYear();
+                  } else {
+                    item.Fecha = "";
+                  }
+                } else {
+                  item.Fecha = "";
+                }
+              });
               sap.ui.require(
                 ["sap/ui/export/Spreadsheet", "sap/ui/export/library"],
                 function (Spreadsheet, exportLibrary) {
@@ -333,6 +375,12 @@ sap.ui.define(
                   ) {
                     return { label: key, property: key, type: EdmType.String };
                   });
+                  // No agregar columna extra, solo exportar Fechainicio ya formateado
+                  // aCols.unshift({
+                  //   label: "Fecha",
+                  //   property: "__Fecha",
+                  //   type: EdmType.String,
+                  // });
                   var oSheet = new Spreadsheet({
                     workbook: { columns: aCols },
                     dataSource: aSorted,
@@ -397,9 +445,9 @@ sap.ui.define(
                 const d = new Date(val);
                 if (isNaN(d)) return "";
                 const p2 = (x) => String(x).padStart(2, "0");
-                return `${p2(d.getUTCDate())}-${p2(
-                  d.getUTCMonth() + 1
-                )}-${String(d.getUTCFullYear()).slice(-2)}`;
+                return `${p2(d.getDate())}/${p2(
+                  d.getMonth() + 1
+                )}/${d.getFullYear()}`;
               };
 
               const aData = aRaw.map((o) => {

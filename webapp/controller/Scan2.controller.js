@@ -877,6 +877,9 @@ sap.ui.define(
         var sODataFechaInicio = "/Date(" + now.getTime() + ")/";
         var sHoraActual = now.toTimeString().slice(0, 8); // "HH:MM:SS"
         var sODataHoraInicio = toODataTime(sHoraActual);
+        var centroValue = localStorage.getItem("depositoCod") || "";
+        var preparadorValue = localStorage.getItem("sPreparador") || "";
+        var entregaValue = localStorage.getItem("sPtoPlanif") || "";
 
         var oEntry = {
           Id: 0,
@@ -886,20 +889,18 @@ sap.ui.define(
           CodigoInterno: "",
           Descripcion: "",
           Ruta: "",
-          Entregamasproducto: "",
-          Asignado: "",
           TipoLog: sTipoLog,
           Hora: sODataHoraInicio,
           Fecha: sODataFechaInicio,
-          /*                 Preparador: ctx.byId("Usuario").getValue(), */
+          Entrega: entregaValue,
+          Centro: centroValue,
+          Preparador: preparadorValue,
           Cliente: "",
-          Entrega: "",
           Estacion: (function () {
             var fullText = ctx.byId("puestoScan").getText();
             var code = fullText.replace("Estacion de trabajo Nro: ", "").trim();
             return code;
           })(),
-          Centro: "",
           Transporte: sTransporte,
           CantAsignada: 0,
           ConfirmadoEnRuta: "",
@@ -1871,6 +1872,11 @@ sap.ui.define(
           var code = fullText.replace("Reparto: ", "").trim();
           return code.padStart(10, "0");
         })();
+
+        var centroValue = localStorage.getItem("depositoCod") || "";
+        var preparadorValue = localStorage.getItem("sPreparador") || "";
+        var entregaValue = localStorage.getItem("sPtoPlanif") || "";
+
         var oEntry = {
           Id: 0,
           EventoNro: 0,
@@ -1879,19 +1885,18 @@ sap.ui.define(
           CodigoInterno: "",
           Descripcion: "",
           Ruta: "",
-          Entregamasproducto: "",
-          Asignado: "",
-          TipoLog: "CIERRE",
+          TipoLog: "IMPRESION",
+          Entrega: entregaValue,
+          Centro: centroValue,
+          Preparador: preparadorValue,
           Hora: sODataHoraActual,
           Fecha: sODataFechafin,
           Cliente: "",
-          Entrega: "",
           Estacion: (function () {
             var fullText = ctx2.byId("puestoScan").getText();
             var code = fullText.replace("Estacion de trabajo Nro: ", "").trim();
             return code;
           })(),
-          Centro: "",
           Transporte: sTransporte,
           CantAsignada: 0,
           ConfirmadoEnRuta: "",
@@ -3327,6 +3332,10 @@ sap.ui.define(
         }
         var sODataFechaInicio = "/Date(" + now.getTime() + ")/";
         var sODataHoraInicio = toODataTime(sHoraActual);
+        var centroValue = localStorage.getItem("depositoCod") || "";
+        var preparadorValue = localStorage.getItem("sPreparador") || "";
+        var entregaValue = localStorage.getItem("sPtoPlanif") || "";
+
         var oEntry = {
           Id: 0,
           EventoNro: 0,
@@ -3335,19 +3344,18 @@ sap.ui.define(
           CodigoInterno: "",
           Descripcion: "",
           Ruta: "",
-          Entregamasproducto: "",
-          Asignado: "",
           TipoLog: sTipoLog,
           Hora: sODataHoraInicio,
+          Entrega: entregaValue,
+          Centro: centroValue,
+          Preparador: preparadorValue,
           Fecha: sODataFechaInicio,
           Cliente: "",
-          Entrega: "",
           Estacion: (function () {
             var fullText = ctx.byId("puestoScan").getText();
             var code = fullText.replace("Estacion de trabajo Nro: ", "").trim();
             return code;
           })(),
-          Centro: "",
           Transporte: sTransporte,
           CantAsignada: 0,
           ConfirmadoEnRuta: "",
