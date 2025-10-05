@@ -3302,6 +3302,24 @@ sap.ui.define(
                                    }, */
       onPause: function () {
         const oClockModel = this.getOwnerComponent().getModel("clock");
+        var elapsedSeconds = oClockModel.getProperty("/elapsedSeconds") || 0;
+        // Convertir segundos a formato HH:MM:SS
+        var hours = Math.floor(elapsedSeconds / 3600)
+          .toString()
+          .padStart(2, "0");
+        var minutes = Math.floor((elapsedSeconds % 3600) / 60)
+          .toString()
+          .padStart(2, "0");
+        var seconds = Math.floor(elapsedSeconds % 60)
+          .toString()
+          .padStart(2, "0");
+        var relojStr = hours + ":" + minutes + ":" + seconds;
+        // Formatear igual que sODataHoraInicio
+        function toODataTime(timeStr) {
+          var parts = timeStr.split(":");
+          return "PT" + parts[0] + "H" + parts[1] + "M" + parts[2] + "S";
+        }
+        var sReloj = toODataTime(relojStr);
         oClockModel.setProperty("/isRunning", false);
         localStorage.setItem(
           "clockData",
@@ -3327,10 +3345,6 @@ sap.ui.define(
         var sTipoLog = "PAUSE";
         var now = new Date();
         var sHoraActual = now.toTimeString().slice(0, 8); // "HH:MM:SS"
-        function toODataTime(timeStr) {
-          var parts = timeStr.split(":");
-          return "PT" + parts[0] + "H" + parts[1] + "M" + parts[2] + "S";
-        }
         var sODataFechaInicio = "/Date(" + now.getTime() + ")/";
         var sODataHoraInicio = toODataTime(sHoraActual);
         var centroValue = localStorage.getItem("depositoCod") || "";
@@ -3346,6 +3360,7 @@ sap.ui.define(
           Descripcion: "",
           Ruta: "",
           TipoLog: sTipoLog,
+          Reloj: sReloj,
           Hora: sODataHoraInicio,
           Entrega: entregaValue,
           Centro: centroValue,
