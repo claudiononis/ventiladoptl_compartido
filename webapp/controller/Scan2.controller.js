@@ -265,21 +265,21 @@ sap.ui.define(
           ) {
             return accumulator + Number(currentValue.SCAN);
           },
-          0);
+            0);
           var totalFalta = resultado.reduce(function (
             accumulator,
             currentValue
           ) {
             return accumulator + Number(currentValue.FALTA);
           },
-          0);
+            0);
           var totalCubTeo = resultado.reduce(function (
             accumulator,
             currentValue
           ) {
             return accumulator + Number(currentValue["Cub TEO"]);
           },
-          0);
+            0);
           //Recupera el estado del transporte
 
           // Nombres de las columnas
@@ -431,26 +431,26 @@ sap.ui.define(
           oModel.setProperty(
             "/realCubetasTotal",
             "Total : " +
-              tableDataArray.reduce(
-                (sum, item) => sum + (parseFloat(item["C Real"]) || 0),
-                0
-              )
+            tableDataArray.reduce(
+              (sum, item) => sum + (parseFloat(item["C Real"]) || 0),
+              0
+            )
           );
           oModel.setProperty(
             "/realPalletsTotal",
             "Total : " +
-              tableDataArray.reduce(
-                (sum, item) => sum + (parseFloat(item["Pa"]) || 0),
-                0
-              )
+            tableDataArray.reduce(
+              (sum, item) => sum + (parseFloat(item["Pa"]) || 0),
+              0
+            )
           );
           oModel.setProperty(
             "/realRollsTotal",
             "Total : " +
-              tableDataArray.reduce(
-                (sum, item) => sum + (parseFloat(item["Ro"]) || 0),
-                0
-              )
+            tableDataArray.reduce(
+              (sum, item) => sum + (parseFloat(item["Ro"]) || 0),
+              0
+            )
           );
           this.getView().setModel(oModel);
 
@@ -827,7 +827,7 @@ sap.ui.define(
                   Duracionpreparacion: Math.floor(
                     (parseODataDurationToMilliseconds(sODataHoraActual) -
                       registro.Horainicio.ms) /
-                      60000
+                    60000
                   ),
                   Cantidadentrega: cantidadRegistros,
                   Kiloentrega: totalKilo,
@@ -857,7 +857,7 @@ sap.ui.define(
           var code = fullText.replace("Reparto: ", "").trim();
           return code.padStart(10, "0");
         })();
-        var sTipoLog = "SCAN";
+        var sTipoLog = "START";
         var now = new Date();
         var sHoraActual = now.toTimeString().slice(0, 8); // "HH:MM:SS"
         var sODataHoraActual =
@@ -977,7 +977,7 @@ sap.ui.define(
                 if (dom) {
                   try {
                     dom.select();
-                  } catch (e) {}
+                  } catch (e) { }
                 }
               }
             }, 1);
@@ -1693,71 +1693,167 @@ sap.ui.define(
 
         getRequest.onsuccess = function (event) {
           var data = event.target.result; // recupera el registro
-          if (data) {
-            // Actualizar el campo 'Estado'
-            var cant2 = cant;
-            data.Estado = nuevoEstado;
-            data.CantEscaneada = cant2;
-            data.AdicChar2 = AdicChar2;
-            data.AdicDec2 = fechaHora;
-            data.Preparador = sUsuario;
-            data.AdicDec1 = sPuesto;
-            data.Kgbrr = kgbrr;
-            data.M3r = M3r;
-            // Guardar el registro actualizado
-            var updateRequest = objectStore.put(data);
-            updateRequest.onsuccess = function (event) {
-              // si se guardo satisfactoriamente vengo x aca
-              console.log(
-                "El campo 'Estado' ha sido actualizado exitosamente."
-              );
-              // Verificar que el campo 'Estado' ha sido actualizado correctamente
-              var verifyRequest = objectStore.get(id);
-              verifyRequest.onsuccess = function (event) {
-                var updatedData = event.target.result;
+          if (data.Estado != "Completo") { // si el estado no esta actualizada la actualiza
+            if (data) {
+              // Actualizar el campo 'Estado'
+              var cant2 = cant;
+              data.Estado = nuevoEstado;
+              data.CantEscaneada = cant2;
+              data.AdicChar2 = AdicChar2;
+              data.AdicDec2 = fechaHora;
+              data.Preparador = sUsuario;
+              data.AdicDec1 = sPuesto;
+              data.Kgbrr = kgbrr;
+              data.M3r = M3r;
+              // Guardar el registro actualizado
+              var updateRequest = objectStore.put(data);
+              updateRequest.onsuccess = function (event) {
+                // si se guardo satisfactoriamente vengo x aca
                 console.log(
-                  "Valor actualizado del campo 'Estado':",
-                  updatedData.Estado
+                  "El campo 'Estado' ha sido actualizado exitosamente."
                 );
+                // Verificar que el campo 'Estado' ha sido actualizado correctamente
+                var verifyRequest = objectStore.get(id);
+                verifyRequest.onsuccess = function (event) {
+                  var updatedData = event.target.result;
+                  console.log(
+                    "Valor actualizado del campo 'Estado':",
+                    updatedData.Estado
+                  );
 
-                ctx.oActualizarBackEnd(
-                  id,
-                  nuevoEstado,
-                  cant,
-                  AdicChar2,
-                  fechaHora,
-                  sUsuario,
-                  sPuesto,
-                  kgbrr,
-                  M3r
-                );
-                /* ctx.recalcularDatosDeModelo();
-                                             ctx.verificarCicloCompletado();*/
-                ctx.recalcularDatosDeModelo().then(function () {
-                  ctx.verificarCicloCompletado();
-                });
+                  ctx.oActualizarBackEnd(
+                    id,
+                    nuevoEstado,
+                    cant,
+                    AdicChar2,
+                    fechaHora,
+                    sUsuario,
+                    sPuesto,
+                    kgbrr,
+                    M3r
+                  );
+//////////////////////////////
+////////////////////////
+function parsearFechaHora(adicDec2Str) {
+  // Espera formato "dd/mm/aaaa hh:mm:ss"
+  if (!adicDec2Str || typeof adicDec2Str !== "string") {
+    throw new Error("Formato inválido en AdicDec2");
+  }
+
+  const [sFecha, sHora] = adicDec2Str.trim().split(" ");
+  if (!sFecha || !sHora) throw new Error("Falta fecha u hora");
+
+  const [dd, mm, yyyy] = sFecha.split("/");
+  const [HH, MM, SS]   = sHora.split(":");
+  if (!dd || !mm || !yyyy || !HH || !MM || !SS) {
+    throw new Error("Fecha u hora con formato incorrecto");
+  }
+
+  // ---- Para DATS/TIMS (ABAP) ----
+  const fechaDATS = `${yyyy}${mm}${dd}`;       // "YYYYMMDD"
+  const horaTIMS  = `${HH}${MM}${SS}`;         // "HHMMSS"
+
+  // ---- Para OData V2 estándar ----
+  // Fecha como Date JS (00:00:00 local)
+  const fechaEdmDateTime = new Date(
+    Number(yyyy),
+    Number(mm) - 1,
+    Number(dd),
+    0, 0, 0, 0
+  );
+
+  // Hora como duración Edm.Time "PT#H#M#S"
+  const horaEdmTime = `PT${Number(HH)}H${Number(MM)}M${Number(SS)}S`;
+
+  return { fechaDATS, horaTIMS, fechaEdmDateTime, horaEdmTime };
+}
+const { fechaDATS, horaTIMS, fechaEdmDateTime, horaEdmTime } = parsearFechaHora(data.AdicDec2);
+
+                // O si tus valores ya están en IndexedDB, preferí los de la DB:
+const Ean               = data.Ean;
+const CodigoInterno     = data.CodigoInterno;
+const Descripcion       = data.Descricion;
+const Ruta              = data.LugarPDisp;
+const TipoLog           = "SCAN";
+const Fecha             = fechaEdmDateTime;  // Edm.DateTime (sap:display-format="Date")
+const Hora              = horaEdmTime        // Edm.Time -> "PT12H45M30S"
+const Preparador        = data.Preparador;
+const Cliente           = data.Destinatario;
+const Entrega           = data.Entrega;
+const Estacion          = data.AdicDec1;
+const Centro            = sPtoPlanif;
+const Transporte        = data.Transporte;
+const CantAsignada      = Number(data.CantidadEntrega || 0);
+const ConfirmadoEnRuta  = data.LugarPDisp;   
+const Display           = data.display;  
+
+// Array con un único registro
+var createData = {
+  Ean : Ean,
+  CodigoInterno : CodigoInterno,
+  Descripcion : Descripcion,
+  Ruta : Ruta,
+  TipoLog : TipoLog,
+  Fecha: Fecha,
+  Hora : Hora,
+  Preparador : Preparador,
+  Cliente : Cliente,
+  Entrega : Entrega,
+  Estacion : Estacion,
+  Centro : Centro,
+  Transporte : Transporte,
+  CantAsignada : CantAsignada,
+  ConfirmadoEnRuta : ConfirmadoEnRuta,
+  Display : Display
+};
+var oModel = new sap.ui.model.odata.v2.ODataModel(
+          "/sap/opu/odata/sap/ZVENTILADO_SRV/",
+          {
+            useBatch: false,
+            defaultBindingMode: "TwoWay",
+          }
+        );
+  oModel.create("/zlog_ventiladoSet", createData, {
+          error: function (err) {
+            MessageBox.error("Error al crear el evento.");
+          },
+        });
+
+
+
+////////////////////////
+
+
+
+
+///////////////////////////////
+
+                  ctx.recalcularDatosDeModelo().then(function () {
+                    ctx.verificarCicloCompletado();
+                  });
+                };
+                verifyRequest.onerror = function (event) {
+                  // si hay un error al guardar el dato , voy x aca
+                  console.log(
+                    "Error al verificar el campo 'Estado':",
+                    event.target.error
+                  );
+                };
               };
-              verifyRequest.onerror = function (event) {
-                // si hay un error al guardar el dato , voy x aca
+
+              updateRequest.onerror = function (event) {
+                // si hay error al recuperar el registro voy x aca
                 console.log(
-                  "Error al verificar el campo 'Estado':",
+                  "Error al actualizar el campo 'Estado':",
                   event.target.error
                 );
               };
-            };
-
-            updateRequest.onerror = function (event) {
-              // si hay error al recuperar el registro voy x aca
+            } else {
+              // si no se encuentra el registro voy x aca
               console.log(
-                "Error al actualizar el campo 'Estado':",
-                event.target.error
+                "No se encontró ningún registro con el Id proporcionado."
               );
-            };
-          } else {
-            // si no se encuentra el registro voy x aca
-            console.log(
-              "No se encontró ningún registro con el Id proporcionado."
-            );
+            }
           }
         };
       },
@@ -1786,6 +1882,10 @@ sap.ui.define(
           },
         ];
         this.crud("ACTUALIZAR", "ventilado", id, updatedData, "");
+        ///////////////////
+
+
+        ///////////////////
       },
 
       //   Aca se hacen los calculos para mostrar los numeros GRANDES de la pantalla
@@ -1833,7 +1933,7 @@ sap.ui.define(
 
       //********* fin escaneo **************************/
       //******* Abre pagina de ventilado- Cierre */
-      onCierrePress: function () {},
+      onCierrePress: function () { },
       //*******  Funcion para descargar las etiquetas  ****** */
       onGeneratePDF: function () {
         ctx2 = this;
@@ -2439,7 +2539,7 @@ sap.ui.define(
         };
       },
       // Método para manejar el evento afterClose del diálogo
-      onStopDialogClose: function (oEvent) {},
+      onStopDialogClose: function (oEvent) { },
 
       /******  Llamada ejemplo al CRUD  ****************
                                           
@@ -3041,8 +3141,8 @@ sap.ui.define(
                   campoBusqueda === "id"
                     ? objectStore.get(datos.id)
                     : objectStore
-                        .index(campoBusqueda)
-                        .get(datos[campoBusqueda]);
+                      .index(campoBusqueda)
+                      .get(datos[campoBusqueda]);
                 break;
 
               case "actualizar":
@@ -3496,11 +3596,11 @@ sap.ui.define(
           .catch((err) => {
             MessageBox.error(
               "Error de red al llamar a PickToLine API.\n\n" +
-                "Por favor, verifique:\n" +
-                "1. Que la maquina donde corre la API este encendida y accesible.\n" +
-                "2. Que la conexión de red este activa (VPN, firewall, cables).\n" +
-                "3. Si lo anterior es correcto, reinicie la maquina que contiene la API.\n" +
-                "4. Vuelva a reiniciar el escaneo.",
+              "Por favor, verifique:\n" +
+              "1. Que la maquina donde corre la API este encendida y accesible.\n" +
+              "2. Que la conexión de red este activa (VPN, firewall, cables).\n" +
+              "3. Si lo anterior es correcto, reinicie la maquina que contiene la API.\n" +
+              "4. Vuelva a reiniciar el escaneo.",
               {
                 title: "Error de red PickToLine",
                 actions: [MessageBox.Action.CLOSE],
@@ -3710,8 +3810,10 @@ sap.ui.define(
                   value.LugarPDisp === rutaId &&
                   value.CodigoInterno === ciActual
                 ) {
-                  resolve(value.Id); // Devuelve el primer ID que coincida y no esté confirmado
-                  return;
+                  //if (value.Estado != "Completo") {
+                    resolve(value.Id); // Devuelve el primer ID que coincida y no esté confirmado
+                    return;
+                 // }
                 }
                 cursor.continue();
               } else {
@@ -3720,6 +3822,54 @@ sap.ui.define(
             };
           };
           request.onerror = () => reject(null);
+        });
+      },
+      buscarRegistroPorIdEnIndexedDB: function (id) {
+        const numericId = Number(id);
+
+        return new Promise((resolve, reject) => {
+          const request = indexedDB.open("ventilado", 5);
+
+          request.onerror = () => reject(request.error || new Error("No se pudo abrir la base"));
+
+          request.onsuccess = (event) => {
+            const db = event.target.result;
+            const tx = db.transaction(["ventilado"], "readonly");
+            const store = tx.objectStore("ventilado");
+
+            // Opción A: la clave primaria del store es "Id"
+            if (store.keyPath === "Id") {
+              const getReq = store.get(numericId);
+              getReq.onsuccess = () => resolve(getReq.result || null);
+              getReq.onerror = () => reject(getReq.error);
+              return;
+            }
+
+            // Opción B: existe un índice "Id"
+            if (store.indexNames && store.indexNames.contains("Id")) {
+              const idx = store.index("Id");
+              const getReq = idx.get(numericId);
+              getReq.onsuccess = () => resolve(getReq.result || null);
+              getReq.onerror = () => reject(getReq.error);
+              return;
+            }
+
+            // Opción C: fallback con cursor (si no hay keyPath ni índice "Id")
+            store.openCursor().onsuccess = (e) => {
+              const cursor = e.target.result;
+              if (cursor) {
+                if (Number(cursor.value.Id) === numericId) {
+                  resolve(cursor.value);
+                  return;
+                }
+                cursor.continue();
+              } else {
+                resolve(null);
+              }
+            };
+
+
+          };
         });
       },
 
