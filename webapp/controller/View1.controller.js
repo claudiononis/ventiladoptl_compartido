@@ -483,14 +483,6 @@ sap.ui.define(
                   );
                   const cantidadEansUnicos = uniqueEans.size;
 
-                  const oClockModel = ctx.getOwnerComponent().getModel("clock");
-                  oClockModel.setProperty("/isRunning", true);
-                  localStorage.setItem(
-                    "clockData",
-                    JSON.stringify(oClockModel.getData())
-                  );
-                  ctx.getOwnerComponent()._startClockTimer(oClockModel);
-
                   // Insertar un nuevo registro en el backend
                   var oModel = new sap.ui.model.odata.v2.ODataModel(
                     "/sap/opu/odata/sap/ZVENTILADO_SRV/",
@@ -569,8 +561,8 @@ sap.ui.define(
                           Fecha: sODataFechaInicio,
                           Preparador: ctx.byId("Usuario").getValue(),
                           Cliente: "",
-                          Entrega: entregaValue,
-                          Centro: centroValue,
+                          Entrega: "",
+                          Centro: entregaValue,
                           Preparador: preparadorValue,
                           Estacion: ctx.byId("puesto").getValue(),
                           Transporte: sTransporte,
@@ -579,24 +571,28 @@ sap.ui.define(
                         };
 
                         // Primer create: zlog_ventiladoSet
-                        var oModel = new sap.ui.model.odata.v2.ODataModel(
-                          "/sap/opu/odata/sap/ZVENTILADO_SRV/"
+                        var oModel2 = new sap.ui.model.odata.v2.ODataModel(
+                          "/sap/opu/odata/sap/ZVENTILADO_SRV/",
+                          {
+                            useBatch: false,
+                            defaultBindingMode: "TwoWay",
+                            deferredGroups: ["batchGroup1"],
+                          }
                         );
-                        oModel.create("/zlog_ventiladoSet", oEntry, {
+                        oModel2.create("/zlog_ventiladoSet", oEntry, {
                           success: function (data) {
+                            ctx._validarYActualizarCronometro();
+
                             var oClockModel = ctx
                               .getOwnerComponent()
                               .getModel("clock");
                             oClockModel.setProperty("/time", "00:00:00");
                             oClockModel.setProperty("/elapsedSeconds", 0);
-                            oClockModel.setProperty("/isRunning", true);
+                            oClockModel.setProperty("/isRunning", false);
                             localStorage.setItem(
                               "clockData",
                               JSON.stringify(oClockModel.getData())
                             );
-                            ctx
-                              .getOwnerComponent()
-                              ._startClockTimer(oClockModel);
                           },
                           error: function (err) {
                             MessageBox.error("Error al crear el evento.");
@@ -634,11 +630,9 @@ sap.ui.define(
                           Campoadicional2: sPtoPlanif,
                         };
 
-                        oModel.create("/ZVENTILADO_KPISet", oEntryKPI, {
+                        oModel2.create("/ZVENTILADO_KPISet", oEntryKPI, {
                           success: function (data) {
                             MessageToast.show("KPI creado correctamente.");
-                            // Validar y actualizar cronómetro si horainicio > 0
-                            ctx._validarYActualizarCronometro();
                           },
                           error: function (err) {
                             MessageBox.error("Error al crear registro KPI.");
@@ -691,8 +685,8 @@ sap.ui.define(
                           Fecha: sODataFechaInicio,
                           Preparador: ctx.byId("Usuario").getValue(),
                           Cliente: "",
-                          Entrega: entregaValue,
-                          Centro: centroValue,
+                          Entrega: "",
+                          Centro: entregaValue,
                           Preparador: preparadorValue,
                           Estacion: ctx.byId("puesto").getValue(),
                           Transporte: sTransporte,
@@ -702,6 +696,8 @@ sap.ui.define(
 
                         oModel.create("/zlog_ventiladoSet", oEntryBuscDatos, {
                           success: function (data) {
+                            // Actualizar cronómetro únicamente después de crear BUSC.DATOS exitosamente
+                            ctx._validarYActualizarCronometro();
                           },
                           error: function (err) {
                             console.error(
@@ -729,6 +725,14 @@ sap.ui.define(
                           filters: aFilters,
                           success: function (oData) {
                             if (oData.results && oData.results.length > 0) {
+                              // Si ya hay HoraInicio en localStorage, NO reiniciar el cronómetro
+                              // porque _validarYActualizarCronometro ya lo procesó y detuvo
+                              var sHoraInicioOData =
+                                localStorage.getItem("HoraInicio");
+                              if (sHoraInicioOData) {
+                                return; // No hacer nada, el cronómetro ya fue detenido por _validarYActualizarCronometro
+                              }
+
                               var horaObj = oData.results[0].Reloj;
                               var ms = horaObj && horaObj.ms ? horaObj.ms : 0;
                               // Convert ms to HH:MM:SS
@@ -756,11 +760,8 @@ sap.ui.define(
                                 "clockData",
                                 JSON.stringify(oClockModel.getData())
                               );
-                              ctx
-                                .getOwnerComponent()
-                                ._startClockTimer(oClockModel);
-                              // Validar y actualizar cronómetro si horainicio > 0
-                              ctx._validarYActualizarCronometro();
+                              // NUEVO COMPORTAMIENTO: No iniciar cronómetro automáticamente
+                              // Solo se actualiza con creates de zlog_ventilado
                             }
                           },
                         });
@@ -788,7 +789,7 @@ sap.ui.define(
 
       _validarYActualizarCronometro: function () {
         // Obtener horainicio del localStorage
-        var sHoraInicioOData = localStorage.getItem("horainicio");
+        var sHoraInicioOData = localStorage.getItem("HoraInicio");
 
         if (!sHoraInicioOData) {
           return; // No hay valor guardado, no hacer nada
@@ -811,7 +812,7 @@ sap.ui.define(
         var horaInicioEnSegundos = fromODataTimeToSeconds(sHoraInicioOData);
 
         if (horaInicioEnSegundos > 0) {
-          // Obtener la hora actual
+          // Calcular tiempo transcurrido desde la hora de inicio
           var now = new Date();
           var horaActualEnSegundos =
             now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
@@ -837,20 +838,46 @@ sap.ui.define(
             ":" +
             String(seconds).padStart(2, "0");
 
-          // Actualizar el cronómetro
+          // Actualizar el cronómetro y DETENERLO completamente
           var oClockModel = this.getOwnerComponent().getModel("clock");
+
+          // Detener TODOS los timers posibles del cronómetro
+          var oComponent = this.getOwnerComponent();
+
+          // Intentar múltiples formas de detener el timer - INCLUIR _clockInterval que es el que realmente usa Component.js
+          if (oComponent._clockInterval) {
+            clearInterval(oComponent._clockInterval);
+            oComponent._clockInterval = null;
+          }
+
+          if (oComponent._clockTimer) {
+            clearInterval(oComponent._clockTimer);
+            oComponent._clockTimer = null;
+          }
+
+          if (oComponent.clockTimer) {
+            clearInterval(oComponent.clockTimer);
+            oComponent.clockTimer = null;
+          }
+
+          if (oComponent._timerInterval) {
+            clearInterval(oComponent._timerInterval);
+            oComponent._timerInterval = null;
+          }
+
+          // Forzar isRunning a false en el modelo
           oClockModel.setProperty("/time", formattedTime);
           oClockModel.setProperty("/elapsedSeconds", diferenciaEnSegundos);
-          oClockModel.setProperty("/isRunning", true);
+          oClockModel.setProperty("/isRunning", false); // Siempre detenido
+
+          // Forzar el refresh del modelo
+          oClockModel.refresh();
 
           // Guardar en localStorage
           localStorage.setItem(
             "clockData",
             JSON.stringify(oClockModel.getData())
           );
-
-          // Reiniciar el timer del cronómetro
-          this.getOwnerComponent()._startClockTimer(oClockModel);
         }
       },
 

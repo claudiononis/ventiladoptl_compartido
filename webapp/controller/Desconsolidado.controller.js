@@ -452,8 +452,8 @@ sap.ui.define(
                   Fecha: sODataFechaInicio,
                   Cliente: "",
                   Estacion: estacionValue,
-                  Entrega: entregaValue,
-                  Centro: centroValue,
+                  Entrega: "",
+                  Centro: entregaValue,
                   Preparador: preparadorValue,
                   Transporte: sTransporte,
                   CantAsignada: 0,
@@ -461,6 +461,10 @@ sap.ui.define(
                 };
 
                 dModel.create("/zlog_ventiladoSet", oEntry, {
+                  success: function (data) {
+                    // Actualizar cronómetro después del create exitoso de DESAFECTAR
+                    ctx._validarYActualizarCronometro();
+                  },
                   error: function (err) {
                     sap.m.MessageBox.error(
                       "Error al crear el evento de desafectación."
@@ -714,6 +718,101 @@ sap.ui.define(
               // Ejemplo de uso del parámetro adicional
               console.log("Additional Parameter:", additionalParameter);
             };
+          }
+        },
+
+        // Función para validar y actualizar cronómetro - copiada de View1.controller.js
+        _validarYActualizarCronometro: function () {
+          // Obtener horainicio del localStorage
+          var sHoraInicioOData = localStorage.getItem("HoraInicio");
+
+          if (!sHoraInicioOData) {
+            return; // No hay valor guardado, no hacer nada
+          }
+
+          // Función para convertir formato OData "PTxxHxxMxxS" a segundos
+          function fromODataTimeToSeconds(oDataTime) {
+            if (!oDataTime) return 0;
+
+            var match = oDataTime.match(/PT(\d+)H(\d+)M(\d+)S/);
+            if (!match) return 0;
+
+            var hours = parseInt(match[1], 10);
+            var minutes = parseInt(match[2], 10);
+            var seconds = parseInt(match[3], 10);
+
+            return hours * 3600 + minutes * 60 + seconds;
+          }
+
+          var horaInicioEnSegundos = fromODataTimeToSeconds(sHoraInicioOData);
+
+          if (horaInicioEnSegundos > 0) {
+            // Calcular tiempo transcurrido desde la hora de inicio
+            var now = new Date();
+            var horaActualEnSegundos =
+              now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+
+            // Calcular la diferencia: hora actual - hora inicio
+            var diferenciaEnSegundos =
+              horaActualEnSegundos - horaInicioEnSegundos;
+
+            // Si la diferencia es negativa, significa que cruzamos la medianoche
+            if (diferenciaEnSegundos < 0) {
+              diferenciaEnSegundos += 24 * 3600; // Agregar 24 horas
+            }
+
+            // Convertir a formato HH:MM:SS
+            var hours = Math.floor(diferenciaEnSegundos / 3600);
+            var minutes = Math.floor((diferenciaEnSegundos % 3600) / 60);
+            var seconds = diferenciaEnSegundos % 60;
+
+            var formattedTime =
+              String(hours).padStart(2, "0") +
+              ":" +
+              String(minutes).padStart(2, "0") +
+              ":" +
+              String(seconds).padStart(2, "0");
+
+            // Actualizar el cronómetro y DETENERLO completamente
+            var oClockModel = this.getOwnerComponent().getModel("clock");
+
+            // Detener TODOS los timers posibles del cronómetro
+            var oComponent = this.getOwnerComponent();
+
+            // Intentar múltiples formas de detener el timer - INCLUIR _clockInterval que es el que realmente usa Component.js
+            if (oComponent._clockInterval) {
+              clearInterval(oComponent._clockInterval);
+              oComponent._clockInterval = null;
+            }
+
+            if (oComponent._clockTimer) {
+              clearInterval(oComponent._clockTimer);
+              oComponent._clockTimer = null;
+            }
+
+            if (oComponent.clockTimer) {
+              clearInterval(oComponent.clockTimer);
+              oComponent.clockTimer = null;
+            }
+
+            if (oComponent._timerInterval) {
+              clearInterval(oComponent._timerInterval);
+              oComponent._timerInterval = null;
+            }
+
+            // Forzar isRunning a false en el modelo
+            oClockModel.setProperty("/time", formattedTime);
+            oClockModel.setProperty("/elapsedSeconds", diferenciaEnSegundos);
+            oClockModel.setProperty("/isRunning", false); // Siempre detenido
+
+            // Forzar el refresh del modelo
+            oClockModel.refresh();
+
+            // Guardar en localStorage
+            localStorage.setItem(
+              "clockData",
+              JSON.stringify(oClockModel.getData())
+            );
           }
         },
 
