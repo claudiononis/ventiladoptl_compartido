@@ -265,21 +265,21 @@ sap.ui.define(
           ) {
             return accumulator + Number(currentValue.SCAN);
           },
-            0);
+          0);
           var totalFalta = resultado.reduce(function (
             accumulator,
             currentValue
           ) {
             return accumulator + Number(currentValue.FALTA);
           },
-            0);
+          0);
           var totalCubTeo = resultado.reduce(function (
             accumulator,
             currentValue
           ) {
             return accumulator + Number(currentValue["Cub TEO"]);
           },
-            0);
+          0);
           //Recupera el estado del transporte
 
           // Nombres de las columnas
@@ -431,26 +431,26 @@ sap.ui.define(
           oModel.setProperty(
             "/realCubetasTotal",
             "Total : " +
-            tableDataArray.reduce(
-              (sum, item) => sum + (parseFloat(item["C Real"]) || 0),
-              0
-            )
+              tableDataArray.reduce(
+                (sum, item) => sum + (parseFloat(item["C Real"]) || 0),
+                0
+              )
           );
           oModel.setProperty(
             "/realPalletsTotal",
             "Total : " +
-            tableDataArray.reduce(
-              (sum, item) => sum + (parseFloat(item["Pa"]) || 0),
-              0
-            )
+              tableDataArray.reduce(
+                (sum, item) => sum + (parseFloat(item["Pa"]) || 0),
+                0
+              )
           );
           oModel.setProperty(
             "/realRollsTotal",
             "Total : " +
-            tableDataArray.reduce(
-              (sum, item) => sum + (parseFloat(item["Ro"]) || 0),
-              0
-            )
+              tableDataArray.reduce(
+                (sum, item) => sum + (parseFloat(item["Ro"]) || 0),
+                0
+              )
           );
           this.getView().setModel(oModel);
 
@@ -754,14 +754,15 @@ sap.ui.define(
       /****** Inicio: Arranca proceso de  escaneo  ********************************************/
       onStartPress: function () {
         ctx = this;
-        //Reanuda el reloj
+        // NUEVO COMPORTAMIENTO: No iniciar cronómetro manualmente
+        // El cronómetro se actualiza automáticamente cuando se crea el log START
         const oClockModel = ctx.getOwnerComponent().getModel("clock");
-        oClockModel.setProperty("/isRunning", true);
+        oClockModel.setProperty("/isRunning", false); // Siempre false
         localStorage.setItem(
           "clockData",
           JSON.stringify(oClockModel.getData())
         );
-        ctx.getOwnerComponent()._startClockTimer(oClockModel);
+        // No llamar _startClockTimer - el cronómetro será estático
 
         var oModel = new sap.ui.model.odata.v2.ODataModel(
           "/sap/opu/odata/sap/ZVENTILADO_SRV/",
@@ -827,7 +828,7 @@ sap.ui.define(
                   Duracionpreparacion: Math.floor(
                     (parseODataDurationToMilliseconds(sODataHoraActual) -
                       registro.Horainicio.ms) /
-                    60000
+                      60000
                   ),
                   Cantidadentrega: cantidadRegistros,
                   Kiloentrega: totalKilo,
@@ -892,8 +893,8 @@ sap.ui.define(
           TipoLog: sTipoLog,
           Hora: sODataHoraInicio,
           Fecha: sODataFechaInicio,
-          Entrega: entregaValue,
-          Centro: centroValue,
+          Entrega: "",
+          Centro: entregaValue,
           Preparador: preparadorValue,
           Cliente: "",
           Estacion: (function () {
@@ -907,6 +908,10 @@ sap.ui.define(
         };
 
         oModel.create("/zlog_ventiladoSet", oEntry, {
+          success: function (data) {
+            // Actualizar cronómetro después del create exitoso
+            ctx._validarYActualizarCronometro();
+          },
           error: function (err) {
             MessageBox.error("Error al crear el evento.");
           },
@@ -977,7 +982,7 @@ sap.ui.define(
                 if (dom) {
                   try {
                     dom.select();
-                  } catch (e) { }
+                  } catch (e) {}
                 }
               }
             }, 1);
@@ -1693,7 +1698,8 @@ sap.ui.define(
 
         getRequest.onsuccess = function (event) {
           var data = event.target.result; // recupera el registro
-          if (data.Estado != "Completo") { // si el estado no esta actualizada la actualiza
+          if (data.Estado != "Completo") {
+            // si el estado no esta actualizada la actualiza
             if (data) {
               // Actualizar el campo 'Estado'
               var cant2 = cant;
@@ -1732,101 +1738,112 @@ sap.ui.define(
                     kgbrr,
                     M3r
                   );
-//////////////////////////////
-////////////////////////
-function parsearFechaHora(adicDec2Str) {
-  // Espera formato "dd/mm/aaaa hh:mm:ss"
-  if (!adicDec2Str || typeof adicDec2Str !== "string") {
-    throw new Error("Formato inválido en AdicDec2");
-  }
+                  //////////////////////////////
+                  ////////////////////////
+                  function parsearFechaHora(adicDec2Str) {
+                    // Espera formato "dd/mm/aaaa hh:mm:ss"
+                    if (!adicDec2Str || typeof adicDec2Str !== "string") {
+                      throw new Error("Formato inválido en AdicDec2");
+                    }
 
-  const [sFecha, sHora] = adicDec2Str.trim().split(" ");
-  if (!sFecha || !sHora) throw new Error("Falta fecha u hora");
+                    const [sFecha, sHora] = adicDec2Str.trim().split(" ");
+                    if (!sFecha || !sHora)
+                      throw new Error("Falta fecha u hora");
 
-  const [dd, mm, yyyy] = sFecha.split("/");
-  const [HH, MM, SS]   = sHora.split(":");
-  if (!dd || !mm || !yyyy || !HH || !MM || !SS) {
-    throw new Error("Fecha u hora con formato incorrecto");
-  }
+                    const [dd, mm, yyyy] = sFecha.split("/");
+                    const [HH, MM, SS] = sHora.split(":");
+                    if (!dd || !mm || !yyyy || !HH || !MM || !SS) {
+                      throw new Error("Fecha u hora con formato incorrecto");
+                    }
 
-  // ---- Para DATS/TIMS (ABAP) ----
-  const fechaDATS = `${yyyy}${mm}${dd}`;       // "YYYYMMDD"
-  const horaTIMS  = `${HH}${MM}${SS}`;         // "HHMMSS"
+                    // ---- Para DATS/TIMS (ABAP) ----
+                    const fechaDATS = `${yyyy}${mm}${dd}`; // "YYYYMMDD"
+                    const horaTIMS = `${HH}${MM}${SS}`; // "HHMMSS"
 
-  // ---- Para OData V2 estándar ----
-  // Fecha como Date JS (00:00:00 local)
-  const fechaEdmDateTime = new Date(
-    Number(yyyy),
-    Number(mm) - 1,
-    Number(dd),
-    0, 0, 0, 0
-  );
+                    // ---- Para OData V2 estándar ----
+                    // Fecha como Date JS (00:00:00 local)
+                    const fechaEdmDateTime = new Date(
+                      Number(yyyy),
+                      Number(mm) - 1,
+                      Number(dd),
+                      0,
+                      0,
+                      0,
+                      0
+                    );
 
-  // Hora como duración Edm.Time "PT#H#M#S"
-  const horaEdmTime = `PT${Number(HH)}H${Number(MM)}M${Number(SS)}S`;
+                    // Hora como duración Edm.Time "PT#H#M#S"
+                    const horaEdmTime = `PT${Number(HH)}H${Number(MM)}M${Number(
+                      SS
+                    )}S`;
 
-  return { fechaDATS, horaTIMS, fechaEdmDateTime, horaEdmTime };
-}
-const { fechaDATS, horaTIMS, fechaEdmDateTime, horaEdmTime } = parsearFechaHora(data.AdicDec2);
+                    return {
+                      fechaDATS,
+                      horaTIMS,
+                      fechaEdmDateTime,
+                      horaEdmTime,
+                    };
+                  }
+                  const { fechaDATS, horaTIMS, fechaEdmDateTime, horaEdmTime } =
+                    parsearFechaHora(data.AdicDec2);
 
-                // O si tus valores ya están en IndexedDB, preferí los de la DB:
-const Ean               = data.Ean;
-const CodigoInterno     = data.CodigoInterno;
-const Descripcion       = data.Descricion;
-const Ruta              = data.LugarPDisp;
-const TipoLog           = "SCAN";
-const Fecha             = fechaEdmDateTime;  // Edm.DateTime (sap:display-format="Date")
-const Hora              = horaEdmTime        // Edm.Time -> "PT12H45M30S"
-const Preparador        = data.Preparador;
-const Cliente           = data.Destinatario;
-const Entrega           = data.Entrega;
-const Estacion          = data.AdicDec1;
-const Centro            = sPtoPlanif;
-const Transporte        = data.Transporte;
-const CantAsignada      = Number(data.CantidadEntrega || 0);
-const ConfirmadoEnRuta  = data.LugarPDisp;   
-const Display           = data.display;  
+                  // O si tus valores ya están en IndexedDB, preferí los de la DB:
+                  const Ean = data.Ean;
+                  const CodigoInterno = data.CodigoInterno;
+                  const Descripcion = data.Descricion;
+                  const Ruta = data.LugarPDisp;
+                  const TipoLog = "SCAN";
+                  const Fecha = fechaEdmDateTime; // Edm.DateTime (sap:display-format="Date")
+                  const Hora = horaEdmTime; // Edm.Time -> "PT12H45M30S"
+                  const Preparador = data.Preparador;
+                  const Cliente = data.Destinatario;
+                  const Entrega = data.Entrega;
+                  const Estacion = data.AdicDec1;
+                  const Centro = sPtoPlanif;
+                  const Transporte = data.Transporte;
+                  const CantAsignada = Number(data.CantidadEntrega || 0);
+                  const ConfirmadoEnRuta = data.LugarPDisp;
+                  const Display = data.display;
 
-// Array con un único registro
-var createData = {
-  Ean : Ean,
-  CodigoInterno : CodigoInterno,
-  Descripcion : Descripcion,
-  Ruta : Ruta,
-  TipoLog : TipoLog,
-  Fecha: Fecha,
-  Hora : Hora,
-  Preparador : Preparador,
-  Cliente : Cliente,
-  Entrega : Entrega,
-  Estacion : Estacion,
-  Centro : Centro,
-  Transporte : Transporte,
-  CantAsignada : CantAsignada,
-  ConfirmadoEnRuta : ConfirmadoEnRuta,
-  Display : Display
-};
-var oModel = new sap.ui.model.odata.v2.ODataModel(
-          "/sap/opu/odata/sap/ZVENTILADO_SRV/",
-          {
-            useBatch: false,
-            defaultBindingMode: "TwoWay",
-          }
-        );
-  oModel.create("/zlog_ventiladoSet", createData, {
-          error: function (err) {
-            MessageBox.error("Error al crear el evento.");
-          },
-        });
+                  // Array con un único registro
+                  var createData = {
+                    Ean: Ean,
+                    CodigoInterno: CodigoInterno,
+                    Descripcion: Descripcion,
+                    Ruta: Ruta,
+                    TipoLog: TipoLog,
+                    Fecha: Fecha,
+                    Hora: Hora,
+                    Preparador: Preparador,
+                    Cliente: Cliente,
+                    Entrega: Entrega,
+                    Estacion: Estacion,
+                    Centro: Centro,
+                    Transporte: Transporte,
+                    CantAsignada: CantAsignada,
+                    ConfirmadoEnRuta: ConfirmadoEnRuta,
+                    Display: Display,
+                  };
+                  var oModel = new sap.ui.model.odata.v2.ODataModel(
+                    "/sap/opu/odata/sap/ZVENTILADO_SRV/",
+                    {
+                      useBatch: false,
+                      defaultBindingMode: "TwoWay",
+                    }
+                  );
+                  oModel.create("/zlog_ventiladoSet", createData, {
+                    success: function (data) {
+                      // Actualizar cronómetro después del create exitoso de SCAN
+                      ctx._validarYActualizarCronometro();
+                    },
+                    error: function (err) {
+                      MessageBox.error("Error al crear el evento.");
+                    },
+                  });
 
+                  ////////////////////////
 
-
-////////////////////////
-
-
-
-
-///////////////////////////////
+                  ///////////////////////////////
 
                   ctx.recalcularDatosDeModelo().then(function () {
                     ctx.verificarCicloCompletado();
@@ -1884,7 +1901,6 @@ var oModel = new sap.ui.model.odata.v2.ODataModel(
         this.crud("ACTUALIZAR", "ventilado", id, updatedData, "");
         ///////////////////
 
-
         ///////////////////
       },
 
@@ -1933,7 +1949,7 @@ var oModel = new sap.ui.model.odata.v2.ODataModel(
 
       //********* fin escaneo **************************/
       //******* Abre pagina de ventilado- Cierre */
-      onCierrePress: function () { },
+      onCierrePress: function () {},
       //*******  Funcion para descargar las etiquetas  ****** */
       onGeneratePDF: function () {
         ctx2 = this;
@@ -1987,8 +2003,8 @@ var oModel = new sap.ui.model.odata.v2.ODataModel(
           Descripcion: "",
           Ruta: "",
           TipoLog: "IMPRESION",
-          Entrega: entregaValue,
-          Centro: centroValue,
+          Entrega: "",
+          Centro: entregaValue,
           Preparador: preparadorValue,
           Hora: sODataHoraActual,
           Fecha: sODataFechafin,
@@ -2003,6 +2019,10 @@ var oModel = new sap.ui.model.odata.v2.ODataModel(
           ConfirmadoEnRuta: "",
         };
         oModel.create("/zlog_ventiladoSet", oEntry, {
+          success: function (data) {
+            // Actualizar cronómetro después del create exitoso de IMPRESION
+            ctx2._validarYActualizarCronometro();
+          },
           error: function (err) {
             MessageBox.error("Error al crear el evento de cierre.");
           },
@@ -2539,7 +2559,7 @@ var oModel = new sap.ui.model.odata.v2.ODataModel(
         };
       },
       // Método para manejar el evento afterClose del diálogo
-      onStopDialogClose: function (oEvent) { },
+      onStopDialogClose: function (oEvent) {},
 
       /******  Llamada ejemplo al CRUD  ****************
                                           
@@ -3141,8 +3161,8 @@ var oModel = new sap.ui.model.odata.v2.ODataModel(
                   campoBusqueda === "id"
                     ? objectStore.get(datos.id)
                     : objectStore
-                      .index(campoBusqueda)
-                      .get(datos[campoBusqueda]);
+                        .index(campoBusqueda)
+                        .get(datos[campoBusqueda]);
                 break;
 
               case "actualizar":
@@ -3402,6 +3422,24 @@ var oModel = new sap.ui.model.odata.v2.ODataModel(
                                    }, */
       onPause: function () {
         const oClockModel = this.getOwnerComponent().getModel("clock");
+        var elapsedSeconds = oClockModel.getProperty("/elapsedSeconds") || 0;
+        // Convertir segundos a formato HH:MM:SS
+        var hours = Math.floor(elapsedSeconds / 3600)
+          .toString()
+          .padStart(2, "0");
+        var minutes = Math.floor((elapsedSeconds % 3600) / 60)
+          .toString()
+          .padStart(2, "0");
+        var seconds = Math.floor(elapsedSeconds % 60)
+          .toString()
+          .padStart(2, "0");
+        var relojStr = hours + ":" + minutes + ":" + seconds;
+        // Formatear igual que sODataHoraInicio
+        function toODataTime(timeStr) {
+          var parts = timeStr.split(":");
+          return "PT" + parts[0] + "H" + parts[1] + "M" + parts[2] + "S";
+        }
+        var sReloj = toODataTime(relojStr);
         oClockModel.setProperty("/isRunning", false);
         localStorage.setItem(
           "clockData",
@@ -3427,10 +3465,6 @@ var oModel = new sap.ui.model.odata.v2.ODataModel(
         var sTipoLog = "PAUSE";
         var now = new Date();
         var sHoraActual = now.toTimeString().slice(0, 8); // "HH:MM:SS"
-        function toODataTime(timeStr) {
-          var parts = timeStr.split(":");
-          return "PT" + parts[0] + "H" + parts[1] + "M" + parts[2] + "S";
-        }
         var sODataFechaInicio = "/Date(" + now.getTime() + ")/";
         var sODataHoraInicio = toODataTime(sHoraActual);
         var centroValue = localStorage.getItem("depositoCod") || "";
@@ -3446,9 +3480,10 @@ var oModel = new sap.ui.model.odata.v2.ODataModel(
           Descripcion: "",
           Ruta: "",
           TipoLog: sTipoLog,
+          Reloj: sReloj,
           Hora: sODataHoraInicio,
-          Entrega: entregaValue,
-          Centro: centroValue,
+          Entrega: "",
+          Centro: entregaValue,
           Preparador: preparadorValue,
           Fecha: sODataFechaInicio,
           Cliente: "",
@@ -3462,6 +3497,10 @@ var oModel = new sap.ui.model.odata.v2.ODataModel(
           ConfirmadoEnRuta: "",
         };
         oModel.create("/zlog_ventiladoSet", oEntry, {
+          success: function (data) {
+            // Actualizar cronómetro después del create exitoso de PAUSE
+            ctx._validarYActualizarCronometro();
+          },
           error: function (err) {
             sap.m.MessageBox.error("Error al crear el evento de pausa.");
           },
@@ -3581,11 +3620,11 @@ var oModel = new sap.ui.model.odata.v2.ODataModel(
           .catch((err) => {
             MessageBox.error(
               "Error de red al llamar a PickToLine API.\n\n" +
-              "Por favor, verifique:\n" +
-              "1. Que la maquina donde corre la API este encendida y accesible.\n" +
-              "2. Que la conexión de red este activa (VPN, firewall, cables).\n" +
-              "3. Si lo anterior es correcto, reinicie la maquina que contiene la API.\n" +
-              "4. Vuelva a reiniciar el escaneo.",
+                "Por favor, verifique:\n" +
+                "1. Que la maquina donde corre la API este encendida y accesible.\n" +
+                "2. Que la conexión de red este activa (VPN, firewall, cables).\n" +
+                "3. Si lo anterior es correcto, reinicie la maquina que contiene la API.\n" +
+                "4. Vuelva a reiniciar el escaneo.",
               {
                 title: "Error de red PickToLine",
                 actions: [MessageBox.Action.CLOSE],
@@ -3796,9 +3835,9 @@ var oModel = new sap.ui.model.odata.v2.ODataModel(
                   value.CodigoInterno === ciActual
                 ) {
                   //if (value.Estado != "Completo") {
-                    resolve(value.Id); // Devuelve el primer ID que coincida y no esté confirmado
-                    return;
-                 // }
+                  resolve(value.Id); // Devuelve el primer ID que coincida y no esté confirmado
+                  return;
+                  // }
                 }
                 cursor.continue();
               } else {
@@ -3815,7 +3854,8 @@ var oModel = new sap.ui.model.odata.v2.ODataModel(
         return new Promise((resolve, reject) => {
           const request = indexedDB.open("ventilado", 5);
 
-          request.onerror = () => reject(request.error || new Error("No se pudo abrir la base"));
+          request.onerror = () =>
+            reject(request.error || new Error("No se pudo abrir la base"));
 
           request.onsuccess = (event) => {
             const db = event.target.result;
@@ -3852,8 +3892,6 @@ var oModel = new sap.ui.model.odata.v2.ODataModel(
                 resolve(null);
               }
             };
-
-
           };
         });
       },
@@ -4047,6 +4085,102 @@ var oModel = new sap.ui.model.odata.v2.ODataModel(
           this.byId("dialogoCI").close();
         }
       },
+
+      // Función para validar y actualizar cronómetro - copiada de View1.controller.js
+      _validarYActualizarCronometro: function () {
+        // Obtener horainicio del localStorage
+        var sHoraInicioOData = localStorage.getItem("HoraInicio");
+
+        if (!sHoraInicioOData) {
+          return; // No hay valor guardado, no hacer nada
+        }
+
+        // Función para convertir formato OData "PTxxHxxMxxS" a segundos
+        function fromODataTimeToSeconds(oDataTime) {
+          if (!oDataTime) return 0;
+
+          var match = oDataTime.match(/PT(\d+)H(\d+)M(\d+)S/);
+          if (!match) return 0;
+
+          var hours = parseInt(match[1], 10);
+          var minutes = parseInt(match[2], 10);
+          var seconds = parseInt(match[3], 10);
+
+          return hours * 3600 + minutes * 60 + seconds;
+        }
+
+        var horaInicioEnSegundos = fromODataTimeToSeconds(sHoraInicioOData);
+
+        if (horaInicioEnSegundos > 0) {
+          // Calcular tiempo transcurrido desde la hora de inicio
+          var now = new Date();
+          var horaActualEnSegundos =
+            now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+
+          // Calcular la diferencia: hora actual - hora inicio
+          var diferenciaEnSegundos =
+            horaActualEnSegundos - horaInicioEnSegundos;
+
+          // Si la diferencia es negativa, significa que cruzamos la medianoche
+          if (diferenciaEnSegundos < 0) {
+            diferenciaEnSegundos += 24 * 3600; // Agregar 24 horas
+          }
+
+          // Convertir a formato HH:MM:SS
+          var hours = Math.floor(diferenciaEnSegundos / 3600);
+          var minutes = Math.floor((diferenciaEnSegundos % 3600) / 60);
+          var seconds = diferenciaEnSegundos % 60;
+
+          var formattedTime =
+            String(hours).padStart(2, "0") +
+            ":" +
+            String(minutes).padStart(2, "0") +
+            ":" +
+            String(seconds).padStart(2, "0");
+
+          // Actualizar el cronómetro y DETENERLO completamente
+          var oClockModel = this.getOwnerComponent().getModel("clock");
+
+          // Detener TODOS los timers posibles del cronómetro
+          var oComponent = this.getOwnerComponent();
+
+          // Intentar múltiples formas de detener el timer - INCLUIR _clockInterval que es el que realmente usa Component.js
+          if (oComponent._clockInterval) {
+            clearInterval(oComponent._clockInterval);
+            oComponent._clockInterval = null;
+          }
+
+          if (oComponent._clockTimer) {
+            clearInterval(oComponent._clockTimer);
+            oComponent._clockTimer = null;
+          }
+
+          if (oComponent.clockTimer) {
+            clearInterval(oComponent.clockTimer);
+            oComponent.clockTimer = null;
+          }
+
+          if (oComponent._timerInterval) {
+            clearInterval(oComponent._timerInterval);
+            oComponent._timerInterval = null;
+          }
+
+          // Forzar isRunning a false en el modelo
+          oClockModel.setProperty("/time", formattedTime);
+          oClockModel.setProperty("/elapsedSeconds", diferenciaEnSegundos);
+          oClockModel.setProperty("/isRunning", false); // Siempre detenido
+
+          // Forzar el refresh del modelo
+          oClockModel.refresh();
+
+          // Guardar en localStorage
+          localStorage.setItem(
+            "clockData",
+            JSON.stringify(oClockModel.getData())
+          );
+        }
+      },
+
       ///////
     });
   }
