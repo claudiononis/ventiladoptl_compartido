@@ -400,7 +400,7 @@ sap.ui.define(
           // Guardar en IndexedDB
           this.guardarEnIndexedDB(aFullData)
             .then(() => {
-              MessageToast.show("Datos guardados correctamente en IndexedDB");
+              /*               MessageToast.show("Datos guardados correctamente en IndexedDB"); */
 
               // Actualizar el backend
               Promise.all(
@@ -413,9 +413,9 @@ sap.ui.define(
                 })
               )
                 .then(() => {
-                  MessageToast.show(
+                  /*                   MessageToast.show(
                     "Datos actualizados correctamente en el backend"
-                  );
+                  ); */
                   ctx.getView().byId("btScan2").setEnabled(true);
                 })
                 .catch((error) => {
@@ -679,7 +679,6 @@ sap.ui.define(
             0
           );
 
-
           const conteoContenedores = aData.reduce(
             (acc, item) => {
               if (item.contenedor === "CUB") acc.CUB++;
@@ -885,7 +884,8 @@ sap.ui.define(
           skipSort
         ) {
           const indisponibles =
-            this.getView().getModel().getProperty("/displaysNoDisponibles") || [];
+            this.getView().getModel().getProperty("/displaysNoDisponibles") ||
+            [];
 
           // Determinar contenedor si hace falta
           aData.forEach((item) => {
@@ -913,17 +913,21 @@ sap.ui.define(
 
           // Helpers
           const posicionesPorModulo = 6;
-          const alineadoPallet = (p) => ((p - 1) % 3) === 0; // 1,4,7,10…
+          const alineadoPallet = (p) => (p - 1) % 3 === 0; // 1,4,7,10…
           const mismoModulo = (ini, fin) =>
-            Math.ceil(ini / posicionesPorModulo) === Math.ceil(fin / posicionesPorModulo);
+            Math.ceil(ini / posicionesPorModulo) ===
+            Math.ceil(fin / posicionesPorModulo);
 
           let posicion = 1;
 
           // Asignación de displays
           aData.forEach((item) => {
             const espacios =
-              item.contenedor === "CUB" ? 1 :
-                item.contenedor === "ROLL" ? 2 : 3;
+              item.contenedor === "CUB"
+                ? 1
+                : item.contenedor === "ROLL"
+                ? 2
+                : 3;
 
             let displayAsignado = null;
 
@@ -939,31 +943,43 @@ sap.ui.define(
 
               if (mismoModulo(posicion, fin)) {
                 // Bloque de candidatos
-                const bloque = Array.from({ length: espacios }, (_, i) =>
-                  "dsp-" + ("000" + (posicion + i)).slice(-3)
+                const bloque = Array.from(
+                  { length: espacios },
+                  (_, i) => "dsp-" + ("000" + (posicion + i)).slice(-3)
                 );
-                const bloqueLibre = bloque.every((d) => !indisponibles.includes(d));
+                const bloqueLibre = bloque.every(
+                  (d) => !indisponibles.includes(d)
+                );
 
                 if (bloqueLibre) {
                   displayAsignado = bloque[0];
                   posicion += espacios;
 
                   // Re-alinear si es pallet
-                  if (item.contenedor === "PALLET" && !alineadoPallet(posicion)) {
-                    posicion += (3 - ((posicion - 1) % 3));
+                  if (
+                    item.contenedor === "PALLET" &&
+                    !alineadoPallet(posicion)
+                  ) {
+                    posicion += 3 - ((posicion - 1) % 3);
                   }
                 } else {
                   // avanzar (1 en CUB/ROLL, 3 en PALLET)
-                  posicion += (item.contenedor === "PALLET" ? 3 : 1);
-                  if (item.contenedor === "PALLET" && !alineadoPallet(posicion)) {
-                    posicion += (3 - ((posicion - 1) % 3));
+                  posicion += item.contenedor === "PALLET" ? 3 : 1;
+                  if (
+                    item.contenedor === "PALLET" &&
+                    !alineadoPallet(posicion)
+                  ) {
+                    posicion += 3 - ((posicion - 1) % 3);
                   }
                 }
               } else {
                 // saltar al siguiente módulo
-                posicion = Math.ceil(posicion / posicionesPorModulo) * posicionesPorModulo + 1;
+                posicion =
+                  Math.ceil(posicion / posicionesPorModulo) *
+                    posicionesPorModulo +
+                  1;
                 if (item.contenedor === "PALLET" && !alineadoPallet(posicion)) {
-                  posicion += (3 - ((posicion - 1) % 3));
+                  posicion += 3 - ((posicion - 1) % 3);
                 }
               }
             }
@@ -973,7 +989,6 @@ sap.ui.define(
 
           return aData;
         },
-
 
         onAdminUnlock: function () {
           const oView = this.getView();

@@ -292,7 +292,9 @@ sap.ui.define(
           },
           success: function (oData) {
             // Manejar éxito
-            MessageToast.show("Se cargaron los datos para el ventilado");
+            MessageToast.show(
+              "Los datos para el ventilado fueron cargados correctamente."
+            );
             // Procesar la respuesta aquí
             var transporte = oData.Transporte;
             transporte = transporte.padStart(10, "0");
@@ -631,12 +633,8 @@ sap.ui.define(
                         };
 
                         oModel2.create("/ZVENTILADO_KPISet", oEntryKPI, {
-                          success: function (data) {
-                            MessageToast.show("KPI creado correctamente.");
-                          },
-                          error: function (err) {
-                            MessageBox.error("Error al crear registro KPI.");
-                          },
+                          success: function (data) {},
+                          error: function (err) {},
                         });
                       } else {
                         var oModel = new sap.ui.model.odata.v2.ODataModel(

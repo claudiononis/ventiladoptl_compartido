@@ -345,26 +345,23 @@ sap.ui.define(
                   item.Hora = "";
                 }
               });
-              // Reemplazar Fechainicio por formato DD/MM/AAAA
+
+              // Función para formatear fecha corregida para evitar desfase de zona horaria
+              const fmtDate = (val) => {
+                if (!val) return "";
+                const d = new Date(val);
+                if (isNaN(d)) return "";
+
+                // Usar UTC para evitar problemas de zona horaria
+                const p2 = (x) => String(x).padStart(2, "0");
+                return `${p2(d.getUTCDate())}/${p2(
+                  d.getUTCMonth() + 1
+                )}/${d.getUTCFullYear()}`;
+              };
+
+              // Reemplazar Fecha por formato DD/MM/AAAA usando la función corregida
               aSorted.forEach(function (item) {
-                if (item.Fecha) {
-                  var d = new Date(item.Fecha);
-                  if (!isNaN(d)) {
-                    var p2 = function (x) {
-                      return String(x).padStart(2, "0");
-                    };
-                    item.Fecha =
-                      p2(d.getDate()) +
-                      "/" +
-                      p2(d.getMonth() + 1) +
-                      "/" +
-                      d.getFullYear();
-                  } else {
-                    item.Fecha = "";
-                  }
-                } else {
-                  item.Fecha = "";
-                }
+                item.Fecha = fmtDate(item.Fecha);
               });
               sap.ui.require(
                 ["sap/ui/export/Spreadsheet", "sap/ui/export/library"],
@@ -444,10 +441,12 @@ sap.ui.define(
                 if (!val) return "";
                 const d = new Date(val);
                 if (isNaN(d)) return "";
+
+                // Usar UTC para evitar problemas de zona horaria
                 const p2 = (x) => String(x).padStart(2, "0");
-                return `${p2(d.getDate())}/${p2(
-                  d.getMonth() + 1
-                )}/${d.getFullYear()}`;
+                return `${p2(d.getUTCDate())}/${p2(
+                  d.getUTCMonth() + 1
+                )}/${d.getUTCFullYear()}`;
               };
 
               const aData = aRaw.map((o) => {

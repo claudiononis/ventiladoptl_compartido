@@ -45,6 +45,7 @@ sap.ui.define(
     return Controller.extend("ventilado.ventiladoptl.controller.Scan2", {
       onInit: function () {
         ctx = this;
+        this._salidaRegistrada = false; // Reiniciar flag de salida
 
         this._dbConnections = []; // Array para almacenar conexiones abiertas
         // Obtener el router y attachRouteMatched
@@ -53,9 +54,15 @@ sap.ui.define(
 
         var oModel = new sap.ui.model.json.JSONModel();
         this.getView().setModel(oModel);
+
+        // Remover event listeners previos si existen
+        this._removeEventListeners();
+
         // Manejar eventos de navegación
-        window.addEventListener("beforeunload", this._handleUnload.bind(this));
-        window.addEventListener("popstate", this._handleUnload.bind(this));
+        this._boundHandleUnload = this._handleUnload.bind(this);
+        window.addEventListener("beforeunload", this._boundHandleUnload);
+        window.addEventListener("popstate", this._boundHandleUnload);
+
         // Ejecutar acciones iniciales
         this.ejecutarAcciones();
         this.getView().addEventDelegate(
@@ -75,6 +82,14 @@ sap.ui.define(
       },
 
       onRouteMatched: function () {
+        this._salidaRegistrada = false; // Reiniciar flag de salida al entrar
+        this._navegandoHaciaPagina = true; // Marcar que estamos llegando a la página
+
+        // Timeout más largo para asegurar que no se registren eventos al volver
+        setTimeout(() => {
+          this._navegandoHaciaPagina = false; // Después de un momento, ya no estamos "llegando"
+        }, 500); // Aumentado de 100ms a 500ms
+
         this._dbConnections = []; // Array para almacenar conexiones abiertas
         //inicializa datos
         var oModel = this.getView().getModel();
@@ -754,6 +769,9 @@ sap.ui.define(
       /****** Inicio: Arranca proceso de  escaneo  ********************************************/
       onStartPress: function () {
         ctx = this;
+        // Limpiar estado de pausa al iniciar
+        localStorage.removeItem("scanEnPausa");
+
         // NUEVO COMPORTAMIENTO: No iniciar cronómetro manualmente
         // El cronómetro se actualiza automáticamente cuando se crea el log START
         const oClockModel = ctx.getOwnerComponent().getModel("clock");
@@ -1718,6 +1736,10 @@ sap.ui.define(
                 console.log(
                   "El campo 'Estado' ha sido actualizado exitosamente."
                 );
+
+                // Actualizar cronómetro después de actualización exitosa del estado
+                ctx._validarYActualizarCronometro();
+
                 // Verificar que el campo 'Estado' ha sido actualizado correctamente
                 var verifyRequest = objectStore.get(id);
                 verifyRequest.onsuccess = function (event) {
@@ -2360,6 +2382,9 @@ sap.ui.define(
 
       // Método para manejar la confirmación del valor ingresado en el diálogo Stop
       onStopConfirm: function () {
+        // Limpiar estado de pausa al confirmar stop
+        localStorage.removeItem("scanEnPausa");
+
         if (this.intervalId) {
           clearInterval(this.intervalId);
         }
@@ -3327,8 +3352,20 @@ sap.ui.define(
 
       /******   Cuando se sale de la pagina se cierran todas las conexiones a la base local */
       onExit: function () {
+        // Solo registrar si no se ha registrado ya
+        if (!this._salidaRegistrada) {
+          this._registrarEventoSalida(); // Registrar evento NAVEGACION
+        }
+        this._removeEventListeners(); // Remover event listeners
         this.closeAllDbConnections(); // Cerrar todas las conexiones cuando se cierre el controlador
         localStorage.setItem("elapsedTime", this.elapsedTime.toString());
+      },
+
+      _removeEventListeners: function () {
+        if (this._boundHandleUnload) {
+          window.removeEventListener("beforeunload", this._boundHandleUnload);
+          window.removeEventListener("popstate", this._boundHandleUnload);
+        }
       },
 
       closeAllDbConnections: function () {
@@ -3337,11 +3374,21 @@ sap.ui.define(
         });
         this._dbConnections = []; // Resetear el array de conexiones
       },
-      _handleUnload: function () {
+      _handleUnload: function (event) {
+        // No registrar si estamos navegando hacia esta página
+        if (this._navegandoHaciaPagina) {
+          return;
+        }
+
+        // Solo registrar salida si el controlador está activo y no se ha registrado ya
+        if (this.getView() && !this._salidaRegistrada) {
+          this._registrarEventoSalida(); // Registrar evento NAVEGACION
+        } else if (this._salidaRegistrada) {
+        }
         this.closeAllDbConnections();
-        localStorage.setItem("elapsedTime", this.elapsedTime.toString());
-        localStorage.setItem("elapsedTime", this.elapsedTime.toString());
-        /*         this.onPause(); */
+        if (this.elapsedTime) {
+          localStorage.setItem("elapsedTime", this.elapsedTime.toString());
+        }
       },
       getFormattedDateTime: function () {
         var oDate = new Date();
@@ -3421,6 +3468,9 @@ sap.ui.define(
                                        oModel.setProperty("/isStarted", false);
                                    }, */
       onPause: function () {
+        // Marcar que está en pausa
+        localStorage.setItem("scanEnPausa", "true");
+
         const oClockModel = this.getOwnerComponent().getModel("clock");
         var elapsedSeconds = oClockModel.getProperty("/elapsedSeconds") || 0;
         // Convertir segundos a formato HH:MM:SS
@@ -3508,6 +3558,9 @@ sap.ui.define(
       },
 
       onStop: function () {
+        // Limpiar estado de pausa al detener
+        localStorage.removeItem("scanEnPausa");
+
         if (this.intervalId) {
           clearInterval(this.intervalId);
         }
@@ -3519,6 +3572,9 @@ sap.ui.define(
       },
 
       onReset: function () {
+        // Limpiar estado de pausa al resetear
+        localStorage.removeItem("scanEnPausa");
+
         if (this.intervalId) {
           clearInterval(this.intervalId);
         }
@@ -3535,39 +3591,104 @@ sap.ui.define(
         localStorage.removeItem("elapsedTime");
         localStorage.removeItem("scanState");
       },
+      
+      _registrarEventoSalida: function () {
+        // Verificar si está en pausa - si está en pausa, no registrar
+        var scanEnPausa = localStorage.getItem("scanEnPausa");
+        if (scanEnPausa === "true") {
+          return;
+        }
+
+        // Verificar si ya se registró la salida para evitar duplicados
+        if (this._salidaRegistrada) {
+          return;
+        }
+        this._salidaRegistrada = true;
+
+        var oModel = new sap.ui.model.odata.v2.ODataModel(
+          "/sap/opu/odata/sap/ZVENTILADO_SRV/",
+          {
+            useBatch: false,
+            defaultBindingMode: "TwoWay",
+          }
+        );
+
+        var sTransporte = (function () {
+          var fullText = ctx.byId("transporte").getText();
+          var code = fullText.replace("Reparto: ", "").trim();
+          return code.padStart(10, "0");
+        })();
+
+        var now = new Date();
+        var sHoraActual = now.toTimeString().slice(0, 8); // "HH:MM:SS"
+
+        function toODataTime(timeStr) {
+          var parts = timeStr.split(":");
+          return "PT" + parts[0] + "H" + parts[1] + "M" + parts[2] + "S";
+        }
+
+        var sODataFechaActual = "/Date(" + now.getTime() + ")/";
+        var sODataHoraActual = toODataTime(sHoraActual);
+        var centroValue = localStorage.getItem("depositoCod") || "";
+        var preparadorValue = localStorage.getItem("sPreparador") || "";
+        var entregaValue = localStorage.getItem("sPtoPlanif") || "";
+
+        var oEntry = {
+          Id: 0,
+          EventoNro: 0,
+          ScanNro: 0,
+          Ean: "",
+          CodigoInterno: "",
+          Descripcion: "",
+          Ruta: "",
+          TipoLog: "NAVEGACION",
+          Hora: sODataHoraActual,
+          Fecha: sODataFechaActual,
+          Entrega: "",
+          Centro: entregaValue,
+          Preparador: preparadorValue,
+          Cliente: "",
+          Estacion: (function () {
+            var fullText = ctx.byId("puestoScan").getText();
+            var code = fullText.replace("Estacion de trabajo Nro: ", "").trim();
+            return code;
+          })(),
+          Transporte: sTransporte,
+          CantAsignada: 0,
+          ConfirmadoEnRuta: "",
+        };
+
+        oModel.create("/zlog_ventiladoSet", oEntry, {
+          success: function (data) {},
+          error: function (err) {},
+        });
+      },
+
       /* Navegacion   */
       onNavToInicio: function () {
-        /*         this.onPause(); */
+        this._registrarEventoSalida();
         var oRouter = sap.ui.core.UIComponent.getRouterFor(this);
         oRouter.navTo("RouteView1");
       },
       onNavToAvanceRuta: function () {
-        /*         this.onPause(); */
+        this._registrarEventoSalida();
         var oRouter = sap.ui.core.UIComponent.getRouterFor(this);
         oRouter.navTo("Avance2");
       },
       onNavToAvanceCodigo: function () {
-        /*         this.onPause(); */
+        this._registrarEventoSalida();
         var oRouter = sap.ui.core.UIComponent.getRouterFor(this);
         oRouter.navTo("Avanceporci");
       },
       onDesafectacion: function () {
-        //Arrancamos el reloj
-        /*         const oClockModel = this.getOwnerComponent().getModel("clock");
-        oClockModel.setProperty("/isRunning", true);
-        localStorage.setItem(
-          "clockData",
-          JSON.stringify(oClockModel.getData())
-        );
-        this.getOwnerComponent()._startClockTimer(oClockModel); */
-
-        /*         this.onPause(); */
+        this._registrarEventoSalida();
         var oRouter = sap.ui.core.UIComponent.getRouterFor(this);
-        oRouter.navTo("Desconsolidado"); //
+        oRouter.navTo("Desconsolidado");
       },
 
       onNavToLog: function () {
         this.onPause();
+        this._registrarEventoSalida();
         var oRouter = sap.ui.core.UIComponent.getRouterFor(this);
         oRouter.navTo("Log");
       },
@@ -3793,6 +3914,10 @@ sap.ui.define(
             resultadoFormateadoKgbrr,
             resultadoFormateadoM3r
           );
+
+          // Actualizar cronómetro después de confirmación exitosa desde PTL
+          ctx._validarYActualizarCronometro();
+
           const oModel = this.getView().getModel();
           const tableData = oModel.getProperty("/tableData") || [];
 
