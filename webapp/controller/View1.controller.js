@@ -292,7 +292,9 @@ sap.ui.define(
           },
           success: function (oData) {
             // Manejar éxito
-            MessageToast.show("Se cargaron los datos para el ventilado");
+            MessageToast.show(
+              "Los datos para el ventilado fueron cargados correctamente."
+            );
             // Procesar la respuesta aquí
             var transporte = oData.Transporte;
             transporte = transporte.padStart(10, "0");
@@ -631,12 +633,8 @@ sap.ui.define(
                         };
 
                         oModel2.create("/ZVENTILADO_KPISet", oEntryKPI, {
-                          success: function (data) {
-                            MessageToast.show("KPI creado correctamente.");
-                          },
-                          error: function (err) {
-                            MessageBox.error("Error al crear registro KPI.");
-                          },
+                          success: function (data) {},
+                          error: function (err) {},
                         });
                       } else {
                         var oModel = new sap.ui.model.odata.v2.ODataModel(
@@ -1311,40 +1309,84 @@ sap.ui.define(
                     deferredGroups: ["batchGroup1"],
                   }
                 );
-                // Intentar obtener primero de localStorage
-                let sEstacionId = localStorage.getItem("estacionId");
 
-                // Si es nulo o vacío, tomarlo desde el Input de la view
-                if (!sEstacionId) {
-                  sEstacionId = this.byId("puesto").getValue();
+                const sPuestoValue = oView.byId("puesto").getValue();
+                const sEstacionFormateada =
+                  "EST-" + sPuestoValue.padStart(3, "0");
+
+                const oSelect = oView.byId("selDeposito");
+                const oSelectedItem = oSelect.getSelectedItem();
+                const sDepositoSeleccionado = oSelectedItem
+                  ? oSelectedItem.getText()
+                  : "";
+
+                // Validar que tengamos valores válidos
+                if (!sPuestoValue || !sDepositoSeleccionado) {
+                  sap.m.MessageBox.error(
+                    "Por favor, complete el puesto y seleccione un depósito"
+                  );
+                  return;
                 }
 
-                // Generar la clave con el valor final
-                const sKeyPath = oOData.createKey("ZPICK_ESTSet", {
-                  Id: sEstacionId,
-                });
+                // Crear filtros para buscar en ZPICK_EST
+                var aFilters = [
+                  new sap.ui.model.Filter(
+                    "Estacion",
+                    sap.ui.model.FilterOperator.EQ,
+                    sEstacionFormateada
+                  ),
+                  new sap.ui.model.Filter(
+                    "Deposito",
+                    sap.ui.model.FilterOperator.EQ,
+                    sDepositoSeleccionado
+                  ),
+                ];
 
-                //const sKeyPath = oOData.createKey("ZPICK_ESTSet", { Id: localStorage.getItem("estacionId") });
-                oOData.update(
-                  "/" + sKeyPath,
-                  { Asignada: "" },
-                  {
-                    merge: true,
-                    success: () => {
-                      localStorage.removeItem("depositoCod");
-                      localStorage.removeItem("estacionId");
-                      localStorage.removeItem("estacionTxt");
-                      localStorage.removeItem("IpApi");
-                      oView.byId("puesto").setValue("");
-                      oView.byId("selDeposito").setEnabled(true);
-                      oView.byId("puesto").setEnabled(true);
-                      oView.byId("btnAsignar").setEnabled(true);
-                      MessageToast.show("Estacion asignada: " + oRow.Estacion);
-                    },
-                    error: () =>
-                      MessageBox.error("Error al reservar la estacion"),
-                  }
-                );
+                oOData.read("/ZPICK_ESTSet", {
+                  filters: aFilters,
+                  success: (oData) => {
+                    if (oData.results && oData.results.length > 0) {
+                      // Obtener el ID del primer resultado
+                      const sEstacionId = oData.results[0].Id;
+
+                      // Generar la clave con el ID obtenido
+                      const sKeyPath = oOData.createKey("ZPICK_ESTSet", {
+                        Id: sEstacionId,
+                      });
+
+                      // Realizar el update para marcar como libre
+                      oOData.update(
+                        "/" + sKeyPath,
+                        { Asignada: "" },
+                        {
+                          merge: true,
+                          success: () => {
+                            localStorage.removeItem("depositoCod");
+                            localStorage.removeItem("estacionId");
+                            localStorage.removeItem("estacionTxt");
+                            localStorage.removeItem("IpApi");
+                            oView.byId("puesto").setValue("");
+                            oView.byId("selDeposito").setEnabled(true);
+                            oView.byId("puesto").setEnabled(true);
+                            oView.byId("btnAsignar").setEnabled(true);
+                            sap.m.MessageToast.show(
+                              "Estación liberada correctamente"
+                            );
+                          },
+                          error: () =>
+                            sap.m.MessageBox.error(
+                              "Error al liberar la estación"
+                            ),
+                        }
+                      );
+                    } else {
+                      sap.m.MessageBox.error("No se encontró la estación");
+                    }
+                  },
+                  error: () => {
+                    sap.m.MessageBox.error("Error al consultar la estación");
+                  },
+                });
 
                 sap.m.MessageToast.show("Modo administrador activado");
                 dialog.close();

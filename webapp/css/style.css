@@ -89,7 +89,7 @@
 }
 
 .spBox {
-  width: 45%;
+  width: 50%;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -97,7 +97,7 @@
 
 .spTextBlue,
 .spTextBlack {
-  font-size: 40vh; /* Ajusta este tamaño según sea necesario */
+  font-size: 20vh; /* Ajusta este tamaño según sea necesario */
   width: 100%;
   text-align: center;
 }
@@ -111,7 +111,7 @@
 }
 
 .arrowText {
-  font-size: 20vh; /* Ajusta este tamaño según sea necesario */
+  font-size: 10vh; /* Ajusta este tamaño según sea necesario */
 }
 
 .blackBackground {
