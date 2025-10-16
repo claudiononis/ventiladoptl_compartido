@@ -481,55 +481,7 @@ sap.ui.define(
                     onClose: function (oAction) {
                       if (oAction === MessageBox.Action.OK) {
                         // Codigo para la desafectacion
-                        var oModel = ctx.getView().getModel();
-                        var oModel = new sap.ui.model.odata.v2.ODataModel(
-                          "/sap/opu/odata/sap/ZVENTILADO_SRV/",
-                          {
-                            useBatch: false,
-                            defaultBindingMode: "TwoWay",
-                            deferredGroups: ["batchGroup1"],
-                          }
-                        );
-                        oModel.refreshMetadata();
-                        BusyIndicator.show();
-                        oModel.callFunction("/GenerarTransporte", {
-                          // se llama a la function import
-                          method: "GET",
-                          urlParameters: {
-                            transporte: "BI_" + sReparto, // pasa los parametros strings
-                            pto_planificacion: "0000", //sPtoPlanificacion
-                          },
-                          success: function (oData) {
-                            // Manejar éxito
-                            // MessageToast.show("Se cargaron los datos para el ventilado");
-                            // Procesar la respuesta aquí
-
-                            var estado = oData.Ean;
-                            // Aquí se puede  trabajar con los datos recibidos
-                            console.log("Estado: ", estado);
-                            BusyIndicator.hide(); // Ocultar
-                            MessageToast.show(
-                              "Se completo la Desafectacion de material"
-                            );
-                          },
-                          error: function (oError) {
-                            // Manejar error
-                            var sErrorMessage = "";
-                            try {
-                              var oErrorResponse = JSON.parse(
-                                oError.responseText
-                              );
-                              sErrorMessage =
-                                oErrorResponse.error.message.value;
-                            } catch (e) {
-                              sErrorMessage =
-                                "Error desconocido,  revise conexion de Internet y VPN";
-                            }
-                            BusyIndicator.hide(); // Ocultar
-                            MessageToast.show(sErrorMessage);
-                          },
-                          timeout: 10000, // Establecer un tiempo de espera de 10 segundos
-                        });
+                        ctx._realizarDesafectacion();
                       }
                     },
                   }
@@ -816,6 +768,230 @@ sap.ui.define(
           }
         },
 
+        _realizarDesafectacion: async function () {
+          var ctx = this;
+          try {
+            await ctx._sincronizarBaseDatos();
+            await ctx.obtenerYProcesarDatos();
+
+            var oModel = ctx.getView().getModel();
+            var oModel = new sap.ui.model.odata.v2.ODataModel(
+              "/sap/opu/odata/sap/ZVENTILADO_SRV/",
+              {
+                useBatch: false,
+                defaultBindingMode: "TwoWay",
+                deferredGroups: ["batchGroup1"],
+              }
+            );
+            oModel.refreshMetadata();
+
+            BusyIndicator.show();
+            oModel.callFunction("/GenerarTransporte", {
+              method: "GET",
+              urlParameters: {
+                transporte: "BI_" + sReparto,
+                pto_planificacion: "0000",
+              },
+              success: function (oData) {
+                var estado = oData.Ean;
+                BusyIndicator.hide();
+                MessageToast.show("Se completo la desafectacion de material");
+              },
+              error: function (oError) {
+                // Manejar error
+                var sErrorMessage = "";
+                try {
+                  var oErrorResponse = JSON.parse(oError.responseText);
+                  sErrorMessage = oErrorResponse.error.message.value;
+                } catch (e) {
+                  sErrorMessage =
+                    "Error desconocido, revise conexion de internet y VPN";
+                }
+                BusyIndicator.hide();
+                MessageToast.show(sErrorMessage);
+              },
+              timeout: 10000, // Establecer un tiempo de espera de 10 segundos
+            });
+          } catch (error) {
+            BusyIndicator.hide();
+            MessageToast.show("Error al sincronizar datos: " + error.message);
+            console.error("Error en sincronización:", error);
+          }
+        },
+
+        // Función para sincronizar base de datos local con OData
+        _sincronizarBaseDatos: function () {
+          var ctx = this;
+          return new Promise((resolve, reject) => {
+            var oODataModel = new sap.ui.model.odata.v2.ODataModel(
+              "/sap/opu/odata/sap/ZVENTILADO_SRV/"
+            );
+
+            // Filtros para obtener datos del transporte actual
+            var aFilters = [
+              new Filter("Transporte", FilterOperator.EQ, sReparto),
+            ];
+
+            // Leer datos del OData
+            oODataModel.read("/ventiladoSet", {
+              filters: aFilters,
+              success: function (oData) {
+                if (!oData.results || oData.results.length === 0) {
+                  console.log("No hay datos en OData para sincronizar");
+                  resolve();
+                  return;
+                }
+
+                // Abrir base de datos local
+                var request = indexedDB.open("ventilado", 5);
+
+                request.onerror = function (event) {
+                  console.error("Error al abrir IndexedDB:", event);
+                  reject(new Error("Error al abrir base de datos local"));
+                };
+
+                request.onsuccess = function (event) {
+                  var db = event.target.result;
+                  ctx._dbConnections.push(db);
+
+                  // Obtener datos locales primero
+                  var transaction = db.transaction(["ventilado"], "readonly");
+                  var objectStore = transaction.objectStore("ventilado");
+                  var localData = [];
+
+                  objectStore.openCursor().onsuccess = function (event) {
+                    var cursor = event.target.result;
+                    if (cursor) {
+                      localData.push(cursor.value);
+                      cursor.continue();
+                    } else {
+                      // Comparar y actualizar datos
+                      ctx._compararYActualizarDatos(
+                        db,
+                        localData,
+                        oData.results,
+                        resolve,
+                        reject
+                      );
+                    }
+                  };
+
+                  objectStore.openCursor().onerror = function (event) {
+                    console.error("Error al leer datos locales:", event);
+                    reject(new Error("Error al leer datos locales"));
+                  };
+                };
+              },
+              error: function (oError) {
+                console.error("Error al leer datos del OData:", oError);
+                reject(new Error("Error al leer datos del backend"));
+              },
+            });
+          });
+        },
+
+        // Función para comparar y actualizar datos entre OData y base local
+        _compararYActualizarDatos: function (
+          db,
+          localData,
+          odataData,
+          resolve,
+          reject
+        ) {
+          var ctx = this;
+          var actualizacionesRealizadas = 0;
+          var totalActualizaciones = 0;
+
+          // Crear un mapa de datos locales por ID para búsqueda rápida
+          var localDataMap = {};
+          localData.forEach(function (item) {
+            localDataMap[item.Id] = item;
+          });
+
+          // Crear transacción de escritura
+          var transaction = db.transaction(["ventilado"], "readwrite");
+          var objectStore = transaction.objectStore("ventilado");
+
+          transaction.oncomplete = function () {
+            resolve();
+          };
+
+          transaction.onerror = function (event) {
+            console.error("Error en transacción de actualización:", event);
+            reject(new Error("Error al actualizar base de datos local"));
+          };
+
+          // Comparar cada registro del OData con los datos locales
+          odataData.forEach(function (odataItem) {
+            var localItem = localDataMap[odataItem.Id];
+            if (localItem) {
+              // Verificar si hay diferencias en campos importantes
+              var requiereActualizacion = false;
+              var camposAComparar = [
+                "CantEscaneada",
+                "Estado",
+                "AdicChar2",
+                "AdicDec2",
+                "Preparador",
+                "AdicDec1",
+                "Kgbrr",
+                "M3r",
+              ];
+              camposAComparar.forEach(function (campo) {
+                if (localItem[campo] !== odataItem[campo]) {
+                  requiereActualizacion = true;
+                  console.log(
+                    "Diferencia encontrada en campo '" +
+                      campo +
+                      "' para ID " +
+                      odataItem.Id +
+                      ": Local=" +
+                      localItem[campo] +
+                      ", OData=" +
+                      odataItem[campo]
+                  );
+                }
+              });
+              if (requiereActualizacion) {
+                totalActualizaciones++;
+                // Actualizar el registro local con los datos del OData
+                var registroActualizado = Object.assign({}, localItem, {
+                  CantEscaneada: odataItem.CantEscaneada,
+                  Estado: odataItem.Estado,
+                  AdicChar2: odataItem.AdicChar2,
+                  AdicDec2: odataItem.AdicDec2,
+                  Preparador: odataItem.Preparador,
+                  AdicDec1: odataItem.AdicDec1,
+                  Kgbrr: odataItem.Kgbrr,
+                  M3r: odataItem.M3r,
+                });
+                var updateRequest = objectStore.put(registroActualizado);
+                updateRequest.onsuccess = function () {
+                  actualizacionesRealizadas++;
+                  console.log(
+                    "Registro actualizado exitosamente:",
+                    odataItem.Id
+                  );
+                };
+                updateRequest.onerror = function (event) {
+                  console.error(
+                    "Error al actualizar registro:",
+                    odataItem.Id,
+                    event
+                  );
+                };
+              }
+            } else {
+              console.log(
+                "Registro no encontrado en base local:",
+                odataItem.Id
+              );
+            }
+          });
+          if (totalActualizaciones === 0) {
+            resolve();
+          }
+        },
         //******* Fin  Funciones para el CRUD  *******/
       }
     );
