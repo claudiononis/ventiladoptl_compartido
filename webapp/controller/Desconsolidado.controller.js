@@ -83,14 +83,18 @@ sap.ui.define(
             var codInterno = item.CodInterno;
             var descripcion = item.Descripcion;
             var ruta = item.Ruta;
+            var m3teo = item.M3teo;
             var cantidadEscaneada = item.CantidadEscaneada;
             var entrega = item.Entrega;
             var transporte = item.Transporte;
             var CantidadEntrega = item.CantidadEntrega;
 
+            var clave = codInterno + '|' + m3teo;
             // Si el código interno no existe en el objeto de datos agrupados, crear un nuevo objeto para él
-            if (!datosAgrupados[codInterno]) {
-              datosAgrupados[codInterno] = {
+            // if (!datosAgrupados[codInterno]) {
+            //   datosAgrupados[codInterno] = {
+            if (!datosAgrupados[clave]) {
+              datosAgrupados[clave] = {
                 CodInterno: codInterno,
                 Descripcion: descripcion,
                 Transporte: transporte,
@@ -102,14 +106,16 @@ sap.ui.define(
               };
             }
             // Acumular el total por código interno
-            datosAgrupados[codInterno].Tot += CantidadEntrega;
+           /*  datosAgrupados[codInterno].Tot += CantidadEntrega;
             datosAgrupados[codInterno].scan += cantidadEscaneada;
             datosAgrupados[codInterno].Falta =
-              datosAgrupados[codInterno].Tot - datosAgrupados[codInterno].scan;
-            //CantidadEntrega += CantidadEntrega
-            // Agregar o actualizar la cantidad escaneada para la ruta correspondiente
-            //   datosAgrupados[codInterno][ruta] = cantidadEscaneada;
-            // Agregar o actualizar la cantidad escaneada y el color para la ruta correspondiente
+            datosAgrupados[codInterno].Tot - datosAgrupados[codInterno].scan; */
+           // Acumulados por par (CodInterno, M3teo)
+  datosAgrupados[clave].Tot   += CantidadEntrega;
+  datosAgrupados[clave].scan  += cantidadEscaneada;
+  datosAgrupados[clave].Falta  = datosAgrupados[clave].Tot - datosAgrupados[clave].scan;
+  datosAgrupados[clave].Tot - datosAgrupados[clave].scan; 
+  
             var color = "";
             var color2 = false;
             if (CantidadEntrega - cantidadEscaneada == 0)
@@ -128,7 +134,8 @@ sap.ui.define(
             else cant = cantidadEscaneada;
             var cantF = CantidadEntrega - cantidadEscaneada;
 
-            datosAgrupados[codInterno][ruta] = {
+           // datosAgrupados[codInterno][ruta] = {
+              datosAgrupados[clave][ruta] = {
               cantidadEscaneada: cant, //cantidadEscaneada,
               cantFaltante: cantF,
               color: color,
@@ -295,6 +302,7 @@ sap.ui.define(
               Transporte: registro.Transporte,
               Entrega: registro.Entrega,
               CantidadEntrega: registro.CantidadEntrega,
+              M3teo: registro.M3teo,
             };
           });
 
