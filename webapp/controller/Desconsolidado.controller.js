@@ -89,7 +89,7 @@ sap.ui.define(
             var transporte = item.Transporte;
             var CantidadEntrega = item.CantidadEntrega;
 
-            var clave = codInterno + '|' + m3teo;
+            var clave = codInterno + "|" + m3teo;
             // Si el código interno no existe en el objeto de datos agrupados, crear un nuevo objeto para él
             // if (!datosAgrupados[codInterno]) {
             //   datosAgrupados[codInterno] = {
@@ -106,16 +106,17 @@ sap.ui.define(
               };
             }
             // Acumular el total por código interno
-           /*  datosAgrupados[codInterno].Tot += CantidadEntrega;
+            /*  datosAgrupados[codInterno].Tot += CantidadEntrega;
             datosAgrupados[codInterno].scan += cantidadEscaneada;
             datosAgrupados[codInterno].Falta =
             datosAgrupados[codInterno].Tot - datosAgrupados[codInterno].scan; */
-           // Acumulados por par (CodInterno, M3teo)
-  datosAgrupados[clave].Tot   += CantidadEntrega;
-  datosAgrupados[clave].scan  += cantidadEscaneada;
-  datosAgrupados[clave].Falta  = datosAgrupados[clave].Tot - datosAgrupados[clave].scan;
-  datosAgrupados[clave].Tot - datosAgrupados[clave].scan; 
-  
+            // Acumulados por par (CodInterno, M3teo)
+            datosAgrupados[clave].Tot += CantidadEntrega;
+            datosAgrupados[clave].scan += cantidadEscaneada;
+            datosAgrupados[clave].Falta =
+              datosAgrupados[clave].Tot - datosAgrupados[clave].scan;
+            datosAgrupados[clave].Tot - datosAgrupados[clave].scan;
+
             var color = "";
             var color2 = false;
             if (CantidadEntrega - cantidadEscaneada == 0)
@@ -134,8 +135,8 @@ sap.ui.define(
             else cant = cantidadEscaneada;
             var cantF = CantidadEntrega - cantidadEscaneada;
 
-           // datosAgrupados[codInterno][ruta] = {
-              datosAgrupados[clave][ruta] = {
+            // datosAgrupados[codInterno][ruta] = {
+            datosAgrupados[clave][ruta] = {
               cantidadEscaneada: cant, //cantidadEscaneada,
               cantFaltante: cantF,
               color: color,
@@ -488,8 +489,8 @@ sap.ui.define(
                     actions: [MessageBox.Action.OK, MessageBox.Action.CANCEL],
                     onClose: function (oAction) {
                       if (oAction === MessageBox.Action.OK) {
-                        // Codigo para la desafectacion
-                        ctx._realizarDesafectacion();
+                        // Realizar sincronización antes de la desafectación
+                        ctx._sincronizarAntesDeDesafectar();
                       }
                     },
                   }
@@ -776,6 +777,35 @@ sap.ui.define(
           }
         },
 
+        // Función para sincronizar datos antes de realizar la desafectación
+        _sincronizarAntesDeDesafectar: async function () {
+          var ctx = this;
+
+          try {
+            // Mostrar indicador de carga durante la sincronización
+            BusyIndicator.show();
+
+            // Realizar la sincronización
+            await ctx._sincronizarBaseDatos();
+
+            // Si la sincronización es exitosa, proceder con la desafectación
+            BusyIndicator.hide();
+            await ctx._realizarDesafectacion();
+          } catch (error) {
+            // Si hay error en la sincronización, mostrar popup y no permitir continuar
+            BusyIndicator.hide();
+
+            MessageBox.error(
+              "No hay conexión con el servidor. No se puede realizar la sincronización de datos. " +
+                "Verifique su conexión a internet y VPN, e intente nuevamente.",
+              {
+                title: "Error de Conectividad",
+                actions: [MessageBox.Action.OK],
+              }
+            );
+          }
+        },
+
         _realizarDesafectacion: async function () {
           var ctx = this;
           try {
@@ -845,7 +875,6 @@ sap.ui.define(
               filters: aFilters,
               success: function (oData) {
                 if (!oData.results || oData.results.length === 0) {
-                  console.log("No hay datos en OData para sincronizar");
                   resolve();
                   return;
                 }
@@ -854,7 +883,6 @@ sap.ui.define(
                 var request = indexedDB.open("ventilado", 5);
 
                 request.onerror = function (event) {
-                  console.error("Error al abrir IndexedDB:", event);
                   reject(new Error("Error al abrir base de datos local"));
                 };
 
@@ -885,20 +913,18 @@ sap.ui.define(
                   };
 
                   objectStore.openCursor().onerror = function (event) {
-                    console.error("Error al leer datos locales:", event);
                     reject(new Error("Error al leer datos locales"));
                   };
                 };
               },
               error: function (oError) {
-                console.error("Error al leer datos del OData:", oError);
                 reject(new Error("Error al leer datos del backend"));
               },
             });
           });
         },
 
-        // Función para comparar y actualizar datos entre OData y base local
+        // Función para comparar y actualizar datos desde base local hacia OData
         _compararYActualizarDatos: function (
           db,
           localData,
@@ -907,34 +933,19 @@ sap.ui.define(
           reject
         ) {
           var ctx = this;
-          var actualizacionesRealizadas = 0;
-          var totalActualizaciones = 0;
+          var registrosParaActualizarEnOData = [];
 
-          // Crear un mapa de datos locales por ID para búsqueda rápida
-          var localDataMap = {};
-          localData.forEach(function (item) {
-            localDataMap[item.Id] = item;
+          // Crear un mapa de datos OData por ID para búsqueda rápida
+          var odataDataMap = {};
+          odataData.forEach(function (item) {
+            odataDataMap[item.Id] = item;
           });
 
-          // Crear transacción de escritura
-          var transaction = db.transaction(["ventilado"], "readwrite");
-          var objectStore = transaction.objectStore("ventilado");
-
-          transaction.oncomplete = function () {
-            resolve();
-          };
-
-          transaction.onerror = function (event) {
-            console.error("Error en transacción de actualización:", event);
-            reject(new Error("Error al actualizar base de datos local"));
-          };
-
-          // Comparar cada registro del OData con los datos locales
-          odataData.forEach(function (odataItem) {
-            var localItem = localDataMap[odataItem.Id];
-            if (localItem) {
+          // Comparar cada registro local con el OData
+          localData.forEach(function (localItem) {
+            var odataItem = odataDataMap[localItem.Id];
+            if (odataItem) {
               // Verificar si hay diferencias en campos importantes
-              var requiereActualizacion = false;
               var camposAComparar = [
                 "CantEscaneada",
                 "Estado",
@@ -945,60 +956,68 @@ sap.ui.define(
                 "Kgbrr",
                 "M3r",
               ];
+
+              var hayDiferencias = false;
+
               camposAComparar.forEach(function (campo) {
                 if (localItem[campo] !== odataItem[campo]) {
-                  requiereActualizacion = true;
-                  console.log(
-                    "Diferencia encontrada en campo '" +
-                      campo +
-                      "' para ID " +
-                      odataItem.Id +
-                      ": Local=" +
-                      localItem[campo] +
-                      ", OData=" +
-                      odataItem[campo]
-                  );
+                  hayDiferencias = true;
                 }
               });
-              if (requiereActualizacion) {
-                totalActualizaciones++;
-                // Actualizar el registro local con los datos del OData
-                var registroActualizado = Object.assign({}, localItem, {
-                  CantEscaneada: odataItem.CantEscaneada,
-                  Estado: odataItem.Estado,
-                  AdicChar2: odataItem.AdicChar2,
-                  AdicDec2: odataItem.AdicDec2,
-                  Preparador: odataItem.Preparador,
-                  AdicDec1: odataItem.AdicDec1,
-                  Kgbrr: odataItem.Kgbrr,
-                  M3r: odataItem.M3r,
+
+              if (hayDiferencias) {
+                // Los datos locales son la fuente de verdad, actualizar OData
+                registrosParaActualizarEnOData.push({
+                  Id: localItem.Id,
+                  Estado: localItem.Estado,
+                  CantEscaneada: localItem.CantEscaneada,
+                  AdicChar2: localItem.AdicChar2,
+                  AdicDec2: localItem.AdicDec2,
+                  Preparador: localItem.Preparador,
+                  AdicDec1: localItem.AdicDec1,
+                  Kgbrr: localItem.Kgbrr,
+                  M3r: localItem.M3r,
                 });
-                var updateRequest = objectStore.put(registroActualizado);
-                updateRequest.onsuccess = function () {
-                  actualizacionesRealizadas++;
-                  console.log(
-                    "Registro actualizado exitosamente:",
-                    odataItem.Id
-                  );
-                };
-                updateRequest.onerror = function (event) {
-                  console.error(
-                    "Error al actualizar registro:",
-                    odataItem.Id,
-                    event
-                  );
-                };
               }
-            } else {
-              console.log(
-                "Registro no encontrado en base local:",
-                odataItem.Id
-              );
             }
           });
-          if (totalActualizaciones === 0) {
+
+          // Función para actualizar registros en OData
+          if (registrosParaActualizarEnOData.length === 0) {
             resolve();
+            return;
           }
+
+          var oODataModel = new sap.ui.model.odata.v2.ODataModel(
+            "/sap/opu/odata/sap/ZVENTILADO_SRV/",
+            {
+              useBatch: false,
+              defaultBindingMode: "TwoWay",
+            }
+          );
+
+          var actualizacionesCompletadas = 0;
+          var hayErrores = false;
+
+          registrosParaActualizarEnOData.forEach(function (registro) {
+            var sPath = "/ventiladoSet(" + registro.Id + ")";
+            oODataModel.update(sPath, registro, {
+              success: function () {
+                actualizacionesCompletadas++;
+                if (
+                  actualizacionesCompletadas ===
+                    registrosParaActualizarEnOData.length &&
+                  !hayErrores
+                ) {
+                  resolve();
+                }
+              },
+              error: function (oError) {
+                hayErrores = true;
+                reject(new Error("Error al sincronizar datos con el servidor"));
+              },
+            });
+          });
         },
         //******* Fin  Funciones para el CRUD  *******/
       }
