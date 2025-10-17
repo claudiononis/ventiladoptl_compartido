@@ -2714,24 +2714,51 @@ sap.ui.define(
           createNext(0);
         } else if (operacion == "ACTUALIZAR") {
           // Definir la función updateRecord
+          // Función para reintentar actualización con delays progresivos
+          var reintentar = function (
+            oEntry,
+            onSuccess,
+            onError,
+            intentosRestantes = 5
+          ) {
+            if (intentosRestantes <= 0) {
+              // Se agotaron todos los intentos
+              ctx._mostrarErrorRegistrosPendientes();
+              ctx._crearEventoError();
+              if (onError) onError(new Error("Reintentos agotados"));
+              return;
+            }
 
-          var updateRecord = function (oEntry, onSuccess, onError) {
-            // La ruta debe estar construida correctamente según el modelo y los datos
+            // Mostrar mensaje de reintento (excepto en el primer intento)
+            if (intentosRestantes < 5) {
+              MessageToast.show(
+                "Reintentando conexión... Intento " +
+                  (6 - intentosRestantes) +
+                  " de 5"
+              );
+            }
+
             var sEntitySet = "/" + tabla + "Set";
-            var sPath = sEntitySet + "(" + oEntry.Id + ")"; // Ajusta esta ruta según tu modelo OData
+            var sPath = sEntitySet + "(" + oEntry.Id + ")";
+
             oModel.update(sPath, oEntry, {
               success: function () {
-                //  MessageToast.show("Registro " + oEntry.Id + " actualizado con exito.");
                 if (onSuccess) onSuccess();
               },
               error: function (oError) {
-                MessageToast.show(
-                  "Error al actualizar el registro " + oEntry.Dni
-                );
-                console.error(oError);
-                if (onError) onError(oError);
+                // Calcular delay progresivo: 1s, 2s, 3s, 4s, 5s
+                var delay = (6 - intentosRestantes) * 1000;
+
+                setTimeout(function () {
+                  reintentar(oEntry, onSuccess, onError, intentosRestantes - 1);
+                }, delay);
               },
             });
+          };
+
+          var updateRecord = function (oEntry, onSuccess, onError) {
+            // Usar la nueva función con reintentos
+            reintentar(oEntry, onSuccess, onError);
           };
 
           // Función para actualizar los registros secuencialmente.
@@ -3591,7 +3618,7 @@ sap.ui.define(
         localStorage.removeItem("elapsedTime");
         localStorage.removeItem("scanState");
       },
-      
+
       _registrarEventoSalida: function () {
         // Verificar si está en pausa - si está en pausa, no registrar
         var scanEnPausa = localStorage.getItem("scanEnPausa");
@@ -4304,6 +4331,86 @@ sap.ui.define(
             JSON.stringify(oClockModel.getData())
           );
         }
+      },
+
+      // Función para mostrar popup de error cuando fallan todos los reintentos
+      _mostrarErrorRegistrosPendientes: function () {
+        sap.m.MessageBox.error(
+          "Error de conexión: No se pudieron actualizar algunos registros en el servidor. " +
+            "Los datos se mantienen guardados localmente y se intentarán sincronizar automáticamente " +
+            "cuando se restablezca la conexión.",
+          {
+            title: "Registros Pendientes de Actualización",
+            actions: [sap.m.MessageBox.Action.OK],
+          }
+        );
+      },
+
+      // Función para crear evento de error en zlog_eventos
+      _crearEventoError: function () {
+        var oModel = new sap.ui.model.odata.v2.ODataModel(
+          "/sap/opu/odata/sap/ZVENTILADO_SRV/",
+          {
+            useBatch: false,
+            defaultBindingMode: "TwoWay",
+          }
+        );
+
+        var sTransporte = (function () {
+          return String(Number(sReparto)).padStart(10, "0");
+        })();
+
+        var now = new Date();
+        var sHoraActual = now.toTimeString().slice(0, 8);
+
+        function toODataTime(timeStr) {
+          return (
+            "PT" +
+            timeStr
+              .replace(/:/g, "H")
+              .replace(/H([^H]*)$/, "M$1S")
+              .replace(/M([^M]*)S$/, "M$1S")
+          );
+        }
+
+        var sODataFechaActual = "/Date(" + now.getTime() + ")/";
+        var sODataHoraActual = toODataTime(sHoraActual);
+        var centroValue = localStorage.getItem("depositoCod") || "";
+        var preparadorValue = localStorage.getItem("sPreparador") || "";
+        var entregaValue = localStorage.getItem("sPtoPlanif") || "";
+
+        var oEntry = {
+          Id: 0,
+          EventoNro: 0,
+          ScanNro: 0,
+          Ean: "",
+          CodigoInterno: "",
+          Descripcion: "",
+          Ruta: "",
+          TipoLog: "ERROR",
+          Hora: sODataHoraActual,
+          Fecha: sODataFechaActual,
+          Entrega: "",
+          Centro: entregaValue,
+          Preparador: preparadorValue,
+          Cliente: "",
+          Estacion: (function () {
+            return String(Number(sPuesto)).padStart(3, "0");
+          })(),
+          Transporte: sTransporte,
+          CantAsignada: 0,
+          ConfirmadoEnRuta: "",
+        };
+
+        // Intentar crear el evento de error
+        oModel.create("/zlog_ventiladoSet", oEntry, {
+          success: function (data) {
+            // Evento registrado correctamente
+          },
+          error: function (err) {
+            // No se pudo registrar el evento de error
+          },
+        });
       },
 
       ///////
